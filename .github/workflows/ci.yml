@@ -1,13 +1,21 @@
-# D1 — build-green gate. The default branch is the HUB (docs + CI + the assembly that combines the 4
-# component branches). It checks out the BepInEx + Il2CppInterop component branches and compiles them.
-# Does NOT package; that is release.yml.
+# D1 — build-green gate + a downloadable build artifact. The default branch is the HUB (docs + CI + the
+# assembly that combines the 4 component branches). This checks out the BepInEx + Il2CppInterop component
+# branches, builds the IL2CPP loader via Cake MakeDist (Compile + DownloadDependencies, incl dobby.dll),
+# assembles the win-x64 deploy, and uploads it as a downloadable ZIP — like builds.bepinex.dev/bepinex_be.
+# Tagged GitHub Releases are release.yml; this is the per-build artifact.
 #
-# Trigger model: the component branches carry NO workflow of their own (they are pure vendored source),
-# so a push to `BepInEx`/`Il2CppInterop` can NOT auto-fire this — GitHub runs a workflow only from the
-# ref that holds it. CI therefore runs on: a hub change to the build definition (ci.yml / global.json),
-# any PR, or a manual dispatch. After RE-VENDORING a component branch, trigger by hand ("Run workflow")
-# — see UPGRADING.md. Actions are SHA-pinned (D2); the trailing `# vX.Y.Z` tracks the readable version.
+# Trigger model: the component branches carry NO workflow of their own (pure vendored source), so a push to
+# `BepInEx`/`Il2CppInterop` can NOT auto-fire this — GitHub runs a workflow only from the ref that holds it.
+# CI runs on: a hub change to the build definition (ci.yml / global.json), any PR, or a manual dispatch.
+# After RE-VENDORING a component branch, trigger by hand ("Run workflow") — see UPGRADING.md.
+# Actions are SHA-pinned (D2); the trailing `# vX.Y.Z` tracks the readable version (Dependabot keeps both current).
 name: build
+
+# Version follows upstream BepInEx; the EDITION marker is what flags this as our improved Priconne build.
+env:
+  LOADER_VERSION: '6.0.0'     # upstream BepInEx VersionPrefix (master)
+  BEPINEX_BUILD: 'be.755'     # upstream dev build for our base commit 3fab71a (builds.bepinex.dev)
+  EDITION: 'Priconne'         # improved-edition marker — the difference from stock BepInEx
 
 on:
   push:
@@ -20,7 +28,7 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - name: Checkout BepInEx.Priconne
+      - name: Checkout BepInEx.Priconne (hub)
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           path: BepInEx.Priconne
@@ -34,7 +42,7 @@ jobs:
 
       - name: Checkout Il2CppInterop (Priconne dev branch — v1.5.2 + Unity-6 scan fix)
         # From our BepInEx.Priconne/Il2CppInterop dev branch, NOT the give-and-take fork — the loader is
-        # decoupled from PR #267 so an evolving give-and-take PR never moves the version the loader ships.
+        # decoupled from any in-flight upstream contribution so it never moves the version the loader ships.
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           repository: HetCreep/BepInEx.Priconne
@@ -48,9 +56,61 @@ jobs:
             6.0.x
             8.0.x
 
-      - name: Build Il2CppInterop runtime
-        run: dotnet build Il2CppInterop/Il2CppInterop.Runtime/Il2CppInterop.Runtime.csproj -c Release --nologo
+      - name: Build Il2CppInterop trio (HarmonySupport pulls in Runtime + Common via project-ref)
+        # Building only Runtime.csproj omits HarmonySupport.dll (BepInEx's IL2CPP Harmony layer needs it).
+        run: dotnet build Il2CppInterop/Il2CppInterop.HarmonySupport/Il2CppInterop.HarmonySupport.csproj -c Release --nologo
 
-      - name: Build BepInEx IL2CPP core (the BepInEx component branch)
-        # NU5046 logo.png pack error on the IL2CPP project -> GeneratePackageOnBuild=false
-        run: dotnet build BepInEx/BepInEx.sln -c Release -p:GeneratePackageOnBuild=false --nologo
+      - name: Build BepInEx IL2CPP core (Cake MakeDist — fetches native deps incl dobby.dll)
+        # MakeDist = Compile + DownloadDependencies -> dist-il2cpp/BepInEx/core WITH dobby.dll. Plain
+        # `dotnet build` does NOT download dobby (that was the broken-artifact bug). This step IS the
+        # build-green gate: if the IL2CPP loader does not compile, MakeDist fails red.
+        working-directory: BepInEx
+        shell: cmd
+        run: build.cmd --target MakeDist
+
+      - name: Assemble the win-x64 deploy
+        shell: pwsh
+        run: |
+          $stage = "stage/BepInEx/core"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          # Source = Cake MakeDist output (complete core incl dobby.dll + runtimes/), NOT bin/ (no dobby there).
+          $core = "BepInEx/dist-il2cpp/BepInEx/core"
+          if (-not (Test-Path "$core/dobby.dll")) {
+            Write-Error "MakeDist output has no dobby.dll at $core — aborting (would assemble a non-booting loader)."; exit 1
+          }
+          Copy-Item "$core/*" $stage -Recurse -Force
+          # Overlay the Il2CppInterop v1.5.2+fix trio (bind-by-name, drop-in)
+          $rt = "Il2CppInterop/bin/Il2CppInterop.HarmonySupport/net6.0"
+          foreach ($d in 'Il2CppInterop.Runtime.dll','Il2CppInterop.Common.dll','Il2CppInterop.HarmonySupport.dll') {
+            if (Test-Path "$rt/$d") { Copy-Item "$rt/$d" $stage -Force }
+          }
+          # Trim native runtimes to win-x64 — the only platform the DMM game ever reaches (load เบา: drop the
+          # osx/linux/arm/x86 native sets = never-reached). The gen tooling (Cpp2IL) STAYS as the regen path.
+          Get-ChildItem "$stage/runtimes" -Directory -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -ne 'win-x64' } | Remove-Item -Recurse -Force
+
+      - name: Stamp version + integrity gate
+        shell: pwsh
+        run: |
+          $core = "stage/BepInEx/core"
+          # Integrity gate (D2): never publish a core missing the native hook lib or the loader entry DLL.
+          foreach ($must in 'dobby.dll','BepInEx.Unity.IL2CPP.dll') {
+            if (-not (Test-Path "$core/$must")) { Write-Error "stage missing $must — refusing to package a broken build."; exit 1 }
+          }
+          $sha = (git -C BepInEx rev-parse --short HEAD)
+          $name = "BepInEx-$env:EDITION-IL2CPP-win-x64-$env:LOADER_VERSION-$env:BEPINEX_BUILD+$sha"
+          @(
+            "BepInEx $env:LOADER_VERSION - $env:EDITION improved edition",
+            "Base: upstream BepInEx dev build $env:BEPINEX_BUILD (commit 3fab71a)",
+            "Component (this build): $sha",
+            "IL2CPP, win-x64, pre-baked interop (UpdateInteropAssemblies=false).",
+            "Loader-CORE overlay: drop BepInEx/core/ over a BepInEx 6 IL2CPP install. Interop + plugins ship separately."
+          ) | Out-File "$core/VERSION.txt" -Encoding utf8
+          "ARTIFACT_NAME=$name" | Out-File $env:GITHUB_ENV -Append
+
+      - name: Upload build artifact (ZIP)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: stage/
+          if-no-files-found: error
