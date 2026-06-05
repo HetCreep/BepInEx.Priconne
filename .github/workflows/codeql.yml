@@ -1,7 +1,10 @@
 # Code scanning (CodeQL) — security. Scans the C# loader source for vulnerabilities.
 # build-mode: none = buildless analysis (no compile) → it scans whatever C# is checked into the
-# workspace, so the hub (main) must pull the component branches in first (they hold the actual source;
+# workspace, so the hub (main) must pull the BepInEx component in first (it holds the actual source;
 # main itself is docs-only). This is what caught the Zip Slip (CWE-22) in DownloadTasks.cs.
+#
+# SCOPE: BepInEx ONLY (current focus). The Il2CppInterop scan is TEMPORARILY DISABLED — re-enable its
+# checkout step below when work shifts to that component.
 #
 # Trigger model mirrors ci.yml: component branches carry no workflow, so the weekly schedule + PRs +
 # a hub change to this file + manual dispatch are the drivers. Re-vendored a component? Dispatch by hand.
@@ -34,9 +37,10 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with: { repository: HetCreep/BepInEx.Priconne, ref: BepInEx, path: BepInEx }
 
-      - name: Checkout Il2CppInterop component (our v1.5.2 + scan-fix dev branch)
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-        with: { repository: HetCreep/BepInEx.Priconne, ref: Il2CppInterop, path: Il2CppInterop }
+      # Il2CppInterop scan TEMPORARILY DISABLED (focus = BepInEx). Re-enable by uncommenting:
+      # - name: Checkout Il2CppInterop component (our v1.5.2 + scan-fix dev branch)
+      #   uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      #   with: { repository: HetCreep/BepInEx.Priconne, ref: Il2CppInterop, path: Il2CppInterop }
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
