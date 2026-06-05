@@ -21,16 +21,16 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout BepInEx.Priconne
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: BepInEx.Priconne
 
       - name: Checkout BepInEx core fork
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with: { repository: HetCreep/BepInEx, ref: master, path: BepInEx }
 
       - name: Checkout Il2CppInterop fork (v1.5.2 + scan fix)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with: { repository: HetCreep/Il2CppInterop, ref: fix/u6-findsignature-accessviolation, path: Il2CppInterop }
 
       - name: Setup .NET 6
