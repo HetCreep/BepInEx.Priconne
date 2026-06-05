@@ -21,17 +21,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # Use `gh pr list` per upstream repo (direct API, not search — no indexing lag, and it
-          # distinguishes MERGED from CLOSED). Scope to our author so only our give-and-take PRs show.
+          # Direct per-PR query (NOT search/author-filter — those hit search-indexing lag and the
+          # default-token can't reliably author-filter cross-repo). Each PR is fetched by number, so
+          # the result is exact. UPDATE this list when a give-and-take PR is opened/retired.
+          PRS="BepInEx/BepInEx:1329 BepInEx/BepInEx:1330 BepInEx/BepInEx:1331 BepInEx/BepInEx:1332 BepInEx/BepInEx:1335 BepInEx/BepInEx:1336 BepInEx/Il2CppInterop:267 BepInEx/Il2CppInterop:268 BepInEx/Il2CppInterop:269 BepInEx/Il2CppInterop:270"
           {
-            echo "Weekly status of our upstream give-and-take PRs (author \`HetCreep\`). Newcomer-pacing (S8): only open new PRs once these get a positive response."
+            echo "Weekly status of our upstream give-and-take PRs. Newcomer-pacing (S8): only open new PRs once these get a positive response."
             echo
-            for repo in BepInEx/BepInEx BepInEx/Il2CppInterop; do
-              echo "**$repo**"
-              gh pr list --repo "$repo" --author HetCreep --state all --limit 50 \
-                 --json number,title,state,url \
-                 --jq 'if length == 0 then "- (none)" else (.[] | "- [#\(.number) \(.title)](\(.url)) — **\(.state)**") end'
-              echo
+            for ref in $PRS; do
+              repo="${ref%%:*}"; num="${ref##*:}"
+              line=$(gh api "repos/$repo/pulls/$num" --jq '[(if .merged then "MERGED" else (.state | ascii_upcase) end), .title] | @tsv')
+              state=$(printf '%s' "$line" | cut -f1)
+              title=$(printf '%s' "$line" | cut -f2-)
+              echo "- [$repo#$num](https://github.com/$repo/pull/$num) — **$state** — $title"
             done
           } > digest.md
           num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "PR status digest in:title" --json number --jq '.[0].number // empty')
