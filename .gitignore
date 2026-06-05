@@ -3,9 +3,12 @@
 AGENTS.md
 MEMORY.md
 
-# Priconne dev components — checked out here as git worktrees of this repo's own branches
-# (Il2CppInterop / Il2CppDumper / PrincessDumper). Each is a separate working tree; main must
-# not track them. (Upstream dumper source clones were moved to ../_upstream-dumper-clones/.)
+# The 4 component branches — checked out here as git worktrees of this repo's own branches.
+# The default branch (main) is the HUB (docs + the download/assembly point); the 4 components
+# (BepInEx / Il2CppInterop / Il2CppDumper / PrincessDumper) each live on a sibling branch and
+# are mounted here as separate working trees. main must NOT track them.
+# (Upstream dumper source clones were moved to ../_upstream-dumper-clones/.)
+BepInEx/
 Il2CppInterop/
 Il2CppDumper/
 PrincessDumper/
