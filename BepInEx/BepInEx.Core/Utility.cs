@@ -330,7 +330,12 @@ public static class Utility
         using var md5 = MD5.Create();
 
         foreach (var str in strings)
-            md5.TransformBlock(Encoding.UTF8.GetBytes(str), 0, str.Length, null, 0);
+        {
+            // Count UTF-8 bytes, not UTF-16 chars: str.Length under-counts for any non-ASCII
+            // input, so only a prefix of the bytes would be hashed (a silently wrong hash).
+            var bytes = Encoding.UTF8.GetBytes(str);
+            md5.TransformBlock(bytes, 0, bytes.Length, null, 0);
+        }
 
         md5.TransformFinalBlock(new byte[0], 0, 0);
 
@@ -416,11 +421,18 @@ public static class Utility
     {
         var result = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
         foreach (var directory in directories)
-        foreach (var file in Directory.GetFiles(directory, pattern))
         {
-            var fileName = Path.GetFileName(file);
-            if (!result.ContainsKey(fileName))
-                result[fileName] = file;
+            // A configured search directory (e.g. a missing unstripped_corlib) may not exist;
+            // skip it instead of letting Directory.GetFiles throw DirectoryNotFoundException.
+            if (!Directory.Exists(directory))
+                continue;
+
+            foreach (var file in Directory.GetFiles(directory, pattern))
+            {
+                var fileName = Path.GetFileName(file);
+                if (!result.ContainsKey(fileName))
+                    result[fileName] = file;
+            }
         }
 
         return result.Values;
