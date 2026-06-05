@@ -112,29 +112,6 @@ internal static partial class Il2CppInteropManager
          .AppendLine("{GameDataPath} - Path to the game's Data folder.")
          .ToString());
 
-    private static readonly ConfigEntry<string> MetadataSignatureToScan = ConfigFile.CoreConfig.Bind(
-     "IL2CPP", "MetadataSignatureToScan",
-     string.Empty,
-     new StringBuilder()
-         .AppendLine("Hex byte signature used to locate IL2CPP metadata that is obfuscated and embedded inside")
-         .AppendLine("GameAssembly.dll (games that hide the global-metadata.dat magic, so no usable on-disk file exists).")
-         .AppendLine("When set, BepInEx dumps GameAssembly.dll + metadata from process memory instead of reading the file.")
-         .AppendLine("Game-build-specific; leave empty for normal (non-obfuscated) games.")
-         .ToString());
-
-    private static readonly ConfigEntry<int> ObfuscatedMetadataHeaderOffset = ConfigFile.CoreConfig.Bind(
-     "IL2CPP", "ObfuscatedMetadataHeaderOffset",
-     252,
-     "Byte offset from the matched MetadataSignatureToScan back to the metadata header start. Only used when MetadataSignatureToScan is set.");
-
-    private static readonly ConfigEntry<string> MagicToFix = ConfigFile.CoreConfig.Bind(
-     "IL2CPP", "MagicToFix",
-     string.Empty,
-     new StringBuilder()
-         .AppendLine("Hex bytes written over the start of the located metadata to restore a valid magic + version")
-         .AppendLine("(e.g. AF1BB1FA27000000 = magic 0xFAB11BAF + version 39). Only used when MetadataSignatureToScan is set.")
-         .ToString());
-
     private static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("InteropManager");
 
     private static string il2cppInteropBasePath;
@@ -353,46 +330,6 @@ internal static partial class Il2CppInteropManager
                                                           .Replace("{BepInEx}", Paths.BepInExRootPath)
                                                           .Replace("{ProcessName}", Paths.ProcessName)
                                                           .Replace("{GameDataPath}", Paths.GameDataPath));
-
-        var gameAssemblyPath = GameAssemblyPath;
-
-        // If a metadata signature is configured, the IL2CPP metadata is obfuscated and embedded inside
-        // GameAssembly.dll (no usable on-disk global-metadata.dat). Dump GameAssembly + metadata from the
-        // live process and point Cpp2IL at the de-obfuscated copies. See MetadataMemoryDumper / [IL2CPP] config.
-        if (!string.IsNullOrWhiteSpace(MetadataSignatureToScan.Value))
-        {
-            var dumpLogger = LoggerFactory.CreateLogger("MetadataDump");
-            Logger.LogMessage("Dumping obfuscated IL2CPP metadata from process memory");
-            byte[] signatureBytes, magicBytes;
-            try
-            {
-                signatureBytes = Convert.FromHexString(MetadataSignatureToScan.Value);
-                magicBytes = Convert.FromHexString(MagicToFix.Value);
-            }
-            catch (FormatException ex)
-            {
-                throw new InvalidOperationException(
-                    "[IL2CPP] MetadataSignatureToScan / MagicToFix must be valid hex strings (even number of " +
-                    "hex digits, no spaces or '0x' prefix). Fix them in BepInEx.cfg.", ex);
-            }
-            MetadataMemoryDumper.RuntimeModuleDump(dumpLogger, out var il2cppBytes, out var metadataBytes,
-                                                   signatureBytes, magicBytes,
-                                                   ObfuscatedMetadataHeaderOffset.Value);
-            MetadataMemoryDumper.ValidateMetadata(dumpLogger, metadataPath, il2cppBytes, ref metadataBytes);
-
-            // A failed process-memory read leaves il2cppBytes empty; don't write an empty GameAssembly.dll
-            // (which would make Cpp2IL fail cryptically downstream) — fail with an actionable message.
-            if (il2cppBytes.Length == 0)
-                throw new InvalidOperationException(
-                    "Failed to dump GameAssembly.dll from process memory (see the log); cannot generate interop from an empty module.");
-
-            var dumpDir = Path.Combine(IL2CPPBasePath, "runtime-dump");
-            Directory.CreateDirectory(dumpDir);
-            gameAssemblyPath = Path.Combine(dumpDir, "GameAssembly.dll");
-            metadataPath = Path.Combine(dumpDir, "global-metadata.dat");
-            File.WriteAllBytes(gameAssemblyPath, il2cppBytes);
-            File.WriteAllBytes(metadataPath, metadataBytes);
-        }
         
         Logger.LogMessage("Running Cpp2IL to generate dummy assemblies from " + metadataPath);
 
@@ -411,7 +348,7 @@ internal static partial class Il2CppInteropManager
             cpp2IlLogger.LogError($"[{s}] {message.Trim()}");
 
         var unityVersion = UnityInfo.Version;
-        Cpp2IlApi.InitializeLibCpp2Il(gameAssemblyPath, metadataPath, unityVersion, false);
+        Cpp2IlApi.InitializeLibCpp2Il(GameAssemblyPath, metadataPath, unityVersion, false);
 
         List<Cpp2IlProcessingLayer> processingLayers = new() { new AttributeInjectorProcessingLayer(), };
 

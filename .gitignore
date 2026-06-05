@@ -1,0 +1,22 @@
+# Build output (never commit to the component source branch)
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userprefs
+
+# IDE / tooling
+.vs/
+.idea/
+.vscode/
+
+# Local NuGet restore
+packages/
+
+# Cake tool bootstrap
+tools/
+.dotnet/
+
+# Distribution staging (assembled by CI, never tracked)
+dist/
+dist-il2cpp/
