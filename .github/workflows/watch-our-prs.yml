@@ -1,0 +1,35 @@
+# Optional companion to watch-upstream.yml: a weekly digest of OUR open give-and-take PRs
+# (author HetCreep) across the upstreams, so their merge/close/comment state is visible in one
+# place. GitHub already emails HetCreep on PR activity; this is just a consolidated weekly summary.
+# Free + Claude-independent (runs on GitHub).
+name: watch-our-prs
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'      # weekly, Monday 07:00 UTC (just after the upstream watcher)
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR status digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo "Weekly status of our upstream give-and-take PRs (author \`HetCreep\`). 'closed' may mean merged — click through to confirm. Newcomer-pacing (S8): only open new PRs once these get a positive response."
+            echo
+            gh api -X GET search/issues -f q='author:HetCreep type:pr' \
+              --jq '.items | sort_by(.updated_at) | reverse | .[] | "- [\(.title)](\(.html_url)) — **\(.state)** _(updated \(.updated_at[0:10]))_"'
+          } > digest.md
+          num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "PR status digest in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body-file digest.md
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "📬 PR status digest" --body-file digest.md
+          fi
