@@ -38,8 +38,12 @@ The 106 pre-baked interop assemblies are **generated offline** on a machine that
 from the game's own loaded type metadata (via Cpp2IL / Il2CppInterop + the c01ns v39 parser). They are
 **type metadata, not Cygames content**, and shipping them prebuilt is *lower* ban-risk than a runtime
 dump on the player (which this build never does — `UpdateInteropAssemblies=false`). CI cannot generate
-interop (no game in CI); a release sources the verified `interop/` set for the build named in
-[COMPATIBILITY.md](COMPATIBILITY.md).
+interop (no game in CI).
+
+The interop is stored **separately from the code** as a versioned release asset
+(`interop-<gamebuild>` → `interop.zip`), so `main` stays loader-code only and the game-derived bytes
+never enter the source tree. The release workflow (`workflow_dispatch` → `interop_tag`) downloads the
+asset for the build named in [COMPATIBILITY.md](COMPATIBILITY.md) and assembles it into the zip.
 
 ## Package layout (the release zip)
 

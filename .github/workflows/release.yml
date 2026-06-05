@@ -12,6 +12,9 @@ on:
       tag:
         description: 'Release tag (e.g. 20260605)'
         required: true
+      interop_tag:
+        description: 'Tag of the interop-* release holding interop.zip for this build (e.g. interop-20260605)'
+        required: true
 
 permissions:
   contents: write              # create the release
@@ -56,17 +59,23 @@ jobs:
             if (Test-Path "$rt/$d") { Copy-Item "$rt/$d" $stage -Force }
           }
 
-      - name: Add offline-generated interop (game-derived type metadata)
+      - name: Fetch offline-generated interop (game-derived type metadata)
         shell: pwsh
-        # Interop is generated OFFLINE (no game in CI) — see BUILD.md. It must be supplied as a
-        # workflow artifact / secure source for the build named in COMPATIBILITY.md. Never ship a
-        # loader without it (S1: fail loudly, don't ship a half-package).
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Interop is generated OFFLINE (no game in CI) and stored SEPARATELY from the code as a
+        # versioned release asset (`interop-<gamebuild>` → interop.zip), so `main` stays loader-code
+        # only and the game-derived bytes never bloat the source tree. Fetch the asset for the build
+        # named in COMPATIBILITY.md. Fail loudly if absent (S1: never ship a loader without interop).
         run: |
-          if (-not (Test-Path "interop") -or -not (Get-ChildItem "interop" -Filter *.dll -ErrorAction SilentlyContinue)) {
-            Write-Error "interop/ is missing. The offline-generated interop for the verified build (COMPATIBILITY.md) must be provided before a release. Aborting."
-            exit 1
+          $interopTag = '${{ github.event.inputs.interop_tag }}'
+          if (-not $interopTag) { Write-Error "interop_tag is required (the interop-* release holding interop.zip). Run the release via 'Run workflow' and supply it."; exit 1 }
+          gh release download $interopTag --repo $env:GITHUB_REPOSITORY --pattern 'interop.zip' --dir .
+          if (-not (Test-Path "interop.zip")) { Write-Error "interop.zip not found in release '$interopTag'."; exit 1 }
+          Expand-Archive "interop.zip" -DestinationPath "stage/BepInEx/interop" -Force
+          if (-not (Get-ChildItem "stage/BepInEx/interop" -Filter *.dll -ErrorAction SilentlyContinue)) {
+            Write-Error "interop.zip contained no DLLs."; exit 1
           }
-          Copy-Item "interop" "stage/BepInEx/interop" -Recurse -Force
 
       - name: Package + checksum
         shell: pwsh
