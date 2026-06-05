@@ -21,11 +21,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          # Use `gh pr list` per upstream repo (direct API, not search — no indexing lag, and it
+          # distinguishes MERGED from CLOSED). Scope to our author so only our give-and-take PRs show.
           {
-            echo "Weekly status of our upstream give-and-take PRs (author \`HetCreep\`). 'closed' may mean merged — click through to confirm. Newcomer-pacing (S8): only open new PRs once these get a positive response."
+            echo "Weekly status of our upstream give-and-take PRs (author \`HetCreep\`). Newcomer-pacing (S8): only open new PRs once these get a positive response."
             echo
-            gh api -X GET search/issues -f q='author:HetCreep type:pr' \
-              --jq '.items | sort_by(.updated_at) | reverse | .[] | "- [\(.title)](\(.html_url)) — **\(.state)** _(updated \(.updated_at[0:10]))_"'
+            for repo in BepInEx/BepInEx BepInEx/Il2CppInterop; do
+              echo "**$repo**"
+              gh pr list --repo "$repo" --author HetCreep --state all --limit 50 \
+                 --json number,title,state,url \
+                 --jq 'if length == 0 then "- (none)" else (.[] | "- [#\(.number) \(.title)](\(.url)) — **\(.state)**") end'
+              echo
+            done
           } > digest.md
           num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "PR status digest in:title" --json number --jq '.[0].number // empty')
           if [ -n "$num" ]; then
