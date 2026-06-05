@@ -16,12 +16,24 @@ boot-test**. Repeatable and scriptable.
    ```
    git -C ../BepInEx archive master | tar -x -C BepInEx
    ```
-4. **Re-apply our patches** (`patches/*.patch`). Resolve any conflict at the patched site:
+4. **Re-apply our robustness patches to the shipped source** — #1331 / #1335 / #1336 (missing-dir guard /
+   typeloader cache / hashstrings UTF-8), #269 (generator scan), the `DownloadTasks` Zip Slip guard.
+   Re-vendoring overwrites them, so re-apply from `patches/` or cherry-pick from history; resolve any conflict
+   at the patched site.
+
+   **⛔ DO NOT apply `patches/embedded-metadata-dumper.patch` to the shipped core.** It is the OFFLINE
+   interop-generation tool (a `VirtualProtect` + `ReadProcessMemory` runtime memory-dump = ban-risk). It is
+   forward-applied ONLY in the separate offline interop-gen build, NEVER in the player core (invariant 1,
+   ban-risk ≤ ImaterialC).
+4b. **Ban-risk guard (MANDATORY before commit) + `.gitignore`.** The `git archive` re-vendor can silently
+   re-leak the dumper if it is pulled from a working tree that had the patch applied (this happened 2026-06-06).
+   Confirm it did NOT:
    ```
-   git apply patches/embedded-metadata-dumper.patch   # offline-gen tool only; NOT in the shipped core
+   grep -rliE 'VirtualProtect|ReadProcessMemory|RuntimeModuleDump' BepInEx --include='*.cs'   # must be EMPTY
    ```
-   (The robustness fixes #1331/#1335/#1336 are already committed into the source; re-vendoring overwrites
-   them, so re-apply them too — keep them as `patches/` entries or cherry-pick from history.)
+   If it leaked: `git -C BepInEx apply --reverse ../patches/embedded-metadata-dumper.patch`. Also confirm the
+   component carries a `.gitignore` (`[Bb]in/` / `[Oo]bj/` …) — the archived subtree drops upstream's root one,
+   so a bare `git add -A` would commit build output into the source branch.
 5. **Build-verify:** `dotnet build BepInEx/BepInEx.sln -c Release -p:GeneratePackageOnBuild=false` — green
    across all TFMs (net35/net46/net6). Needs the .NET 8+ SDK (BepInEx master uses C# 12); `global.json` pins it.
 6. **Boot-test:** deploy `BepInEx/core` to the game install; confirm it loads the plugins + translates.
