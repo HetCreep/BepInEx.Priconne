@@ -1,12 +1,18 @@
 # D1 — build-green gate. The default branch is the HUB (docs + CI + the assembly that combines the 4
-# component branches). This checks out the BepInEx + Il2CppInterop component branches and compiles them
-# on every push/PR. Does NOT package; that is release.yml.
-# Actions are pinned to commit SHAs (D2); the trailing `# vX.Y.Z` comment tracks the readable version (Dependabot keeps both current).
+# component branches). It checks out the BepInEx + Il2CppInterop component branches and compiles them.
+# Does NOT package; that is release.yml.
+#
+# Trigger model: the component branches carry NO workflow of their own (they are pure vendored source),
+# so a push to `BepInEx`/`Il2CppInterop` can NOT auto-fire this — GitHub runs a workflow only from the
+# ref that holds it. CI therefore runs on: a hub change to the build definition (ci.yml / global.json),
+# any PR, or a manual dispatch. After RE-VENDORING a component branch, trigger by hand ("Run workflow")
+# — see UPGRADING.md. Actions are SHA-pinned (D2); the trailing `# vX.Y.Z` tracks the readable version.
 name: build
 
 on:
   push:
-    branches: [BepInEx]
+    branches: [main]
+    paths: ['.github/workflows/ci.yml', 'global.json']
   pull_request:
   workflow_dispatch:
 
