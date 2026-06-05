@@ -17,8 +17,8 @@ use a release whose verified build matches your install.
 
 | Piece | Version / source |
 |---|---|
-| BepInEx core | official-new (`BepInEx/BepInEx` commit `3fab71a`) + the upstream-contribution fixes |
-| Il2CppInterop | **v1.5.2** + `FindSignatureInModule` Unity-6 scan-safety fix (upstream PRs [#267](https://github.com/BepInEx/Il2CppInterop/pull/267), [#268](https://github.com/BepInEx/Il2CppInterop/pull/268)) |
+| BepInEx core | **6.0.0** (upstream dev build `be.755`, commit `3fab71a`) + our reliability fixes — **Priconne improved edition** |
+| Il2CppInterop | **v1.5.2** + the Unity-6 `FindSignatureInModule` scan-safety fix |
 | Metadata parser | c01ns/Il2CppDumper (metadata v39) — **offline interop generation only** |
 | Interop | pre-baked, offline-generated (106 assemblies), `UpdateInteropAssemblies=false` |
 

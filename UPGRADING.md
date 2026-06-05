@@ -16,10 +16,10 @@ boot-test**. Repeatable and scriptable.
    ```
    git -C ../BepInEx archive master | tar -x -C BepInEx
    ```
-4. **Re-apply our robustness patches to the shipped source** — #1331 / #1335 / #1336 (missing-dir guard /
-   typeloader cache / hashstrings UTF-8), #269 (generator scan), the `DownloadTasks` Zip Slip guard.
-   Re-vendoring overwrites them, so re-apply from `patches/` or cherry-pick from history; resolve any conflict
-   at the patched site.
+4. **Re-apply our robustness patches to the shipped source** — the missing-directory guard, the type-loader
+   cache hardening, the hashstrings UTF-8 length fix, the interop-generator scan-correctness fix, and the
+   `DownloadTasks` Zip Slip guard. Re-vendoring overwrites them, so re-apply from `patches/` or cherry-pick
+   from history; resolve any conflict at the patched site.
 
    **⛔ DO NOT apply `patches/embedded-metadata-dumper.patch` to the shipped core.** It is the OFFLINE
    interop-generation tool (a `VirtualProtect` + `ReadProcessMemory` runtime memory-dump = ban-risk). It is
