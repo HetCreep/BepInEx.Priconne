@@ -67,6 +67,10 @@ static class DownloadTasks
         {
             // Use Path.Combine to ensure the trailing slash is preserved.
             var fullPath = Path.Combine(destination.FullPath, entry.FullName);
+            // Zip Slip guard (CWE-22): reject entries whose canonical path escapes the destination.
+            var destRoot = Path.GetFullPath(destination.FullPath) + Path.DirectorySeparatorChar;
+            if (!Path.GetFullPath(fullPath).StartsWith(destRoot, StringComparison.Ordinal))
+                throw new IOException($"Blocked Zip Slip: '{entry.FullName}' escapes the extraction directory.");
             var fileName = Path.GetFileName(fullPath);
             if (string.IsNullOrEmpty(fileName))
             {
