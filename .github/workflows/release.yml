@@ -1,12 +1,12 @@
-# D2 — release integrity. On a version/date tag: build the loader, assemble the deploy,
-# package it, publish a SHA-256 checksum, and create a GitHub Release.
+# D2 — release integrity. On a manual dispatch (with `tag` + `interop_tag`): build the loader,
+# assemble the deploy, package it, publish a SHA-256 checksum, and create a GitHub Release.
 # CI-only release (never hand-built). Actions are SHA-pinned (D2). Excellence follow-ups:
 # build provenance (actions/attest-build-provenance) + an SBOM.
+# Dispatch-only (no tag-push trigger): a release needs the matching interop_tag, so it is always
+# a deliberate "Run workflow" with both inputs — not an automatic tag-push (which would have no interop).
 name: release
 
 on:
-  push:
-    tags: ['v*', '20*']        # e.g. v1.0.0 or a 20260605 date tag
   workflow_dispatch:
     inputs:
       tag:
@@ -95,6 +95,7 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
+          tag_name: ${{ github.event.inputs.tag }}
           files: |
             ${{ env.ASSET }}
             ${{ env.ASSET }}.sha256

@@ -30,7 +30,7 @@ jobs:
             echo
             for ref in $PRS; do
               repo="${ref%%:*}"; num="${ref##*:}"
-              line=$(gh api "repos/$repo/pulls/$num" --jq '[(if .merged then "MERGED" else (.state | ascii_upcase) end), .title] | @tsv')
+              line=$(gh api "repos/$repo/pulls/$num" --jq '[(if .merged then "MERGED" else (.state | ascii_upcase) end), .title] | @tsv' 2>/dev/null) || line=$'UNAVAILABLE\t(PR not found — deleted?)'
               state=$(printf '%s' "$line" | cut -f1)
               title=$(printf '%s' "$line" | cut -f2-)
               echo "- [$repo#$num](https://github.com/$repo/pull/$num) — **$state** — $title"
