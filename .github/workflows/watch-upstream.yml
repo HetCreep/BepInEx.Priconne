@@ -1,0 +1,50 @@
+# Upstream watcher — weekly poll of the tracked upstreams, runs FREE on GitHub Actions.
+# It is independent of any Claude subscription or local machine: as long as this repo exists,
+# GitHub runs it. When a tracked upstream moves past the recorded baseline it opens (or comments
+# on) an issue. Bump the baselines below when a move is reviewed/adopted.
+name: watch-upstream
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'      # weekly, Monday 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+env:
+  # Baselines (2026-06-05) — update when a move is adopted. Track master HEAD, not releases/latest
+  # (which returns BepInEx's Mono 5.x and a stale Il2CppInterop tag — misleading for the IL2CPP stack).
+  BEPINEX_BASE: '3fab71a'         # BepInEx/BepInEx master @ our fork base
+  INTEROP_BASE: '61f44a5'         # BepInEx/Il2CppInterop master @ v1.5.2 (our base)
+  IMAT_CORE_BASE: '2026-05-27'    # ImaterialC src/BepInEx/core last-commit date (game-moved signal)
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check tracked upstreams
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          bep=$(gh api repos/BepInEx/BepInEx/commits/master --jq '.sha' | cut -c1-7)
+          intr=$(gh api repos/BepInEx/Il2CppInterop/commits/master --jq '.sha' | cut -c1-7)
+          imat=$(gh api 'repos/ImaterialC/PriconneRe-TL/commits?path=src/BepInEx/core&per_page=1' --jq '.[0].commit.author.date' | cut -c1-10)
+          : > moved.md
+          [ "$bep"  != "$BEPINEX_BASE" ]   && echo "- **BepInEx** master moved: \`$BEPINEX_BASE\` → \`$bep\` — review for fixes to pull into our fork." >> moved.md || true
+          [ "$intr" != "$INTEROP_BASE" ]   && echo "- **Il2CppInterop** master moved: \`$INTEROP_BASE\` → \`$intr\` — review for fixes to pull into our fork." >> moved.md || true
+          [ "$imat" != "$IMAT_CORE_BASE" ] && echo "- **ImaterialC** loader (\`src/BepInEx/core\`) changed: $IMAT_CORE_BASE → $imat — the game likely moved; re-verify our \`core\` boots + regen interop if stale." >> moved.md || true
+          if [ -s moved.md ]; then
+            { echo "Tracked upstreams moved (weekly watch):"; echo; cat moved.md; echo; \
+              echo "After reviewing, bump the baselines in \`.github/workflows/watch-upstream.yml\`."; } > body.md
+            num=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "Upstream moved in:title" --json number --jq '.[0].number // empty')
+            if [ -n "$num" ]; then
+              gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body-file body.md
+            else
+              gh issue create --repo "$GITHUB_REPOSITORY" --title "🔭 Upstream moved — review" --body-file body.md
+            fi
+          else
+            echo "No upstream movement since baseline."
+          fi
