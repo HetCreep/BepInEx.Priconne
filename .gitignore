@@ -1,0 +1,23 @@
+# Agent-local files (private; governance lives at the Modloader hub, not here)
+.claude/
+AGENTS.md
+MEMORY.md
+
+# Build-time dependency clones (each has its own .git; CI fetches/builds them — see BUILD.md)
+Il2CppDumper-c01ns/
+PrincessDumper/
+
+# Build output
+[Bb]in/
+[Oo]bj/
+*.user
+
+# Local NuGet restore
+packages/
+
+# Game-derived / large local artifacts (never commit; offline-generated, shipped via Releases)
+dist/
+interop/
+runtime-dump/
+*.dat
+global-metadata*.dat

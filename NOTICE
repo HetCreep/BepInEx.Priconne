@@ -1,0 +1,28 @@
+BepInEx.Priconne
+================
+
+An independent BepInEx 6 (IL2CPP) mod loader build for Princess Connect! Re:Dive.
+This product is licensed under the GNU Lesser General Public License v2.1 (see LICENSE).
+
+It is a fork / re-assembly of the open BepInEx lineage. The following upstream projects
+are incorporated or referenced; their licenses and attribution are preserved:
+
+- BepInEx (https://github.com/BepInEx/BepInEx) — LGPL-2.1. The core loader framework
+  (preloader, chainloader, Unity IL2CPP runtime, UnityDoorstop integration).
+- Il2CppInterop (https://github.com/BepInEx/Il2CppInterop) — the IL2CPP <-> managed interop
+  runtime (class injection, signature scanning, Cpp2IL-generated assemblies). The shipped
+  build includes the FindSignatureInModule scan-safety fix contributed upstream.
+- c01ns/Il2CppDumper (https://github.com/c01ns/Il2CppDumper) — the metadata-version 39 parser
+  (Perfare/Il2CppDumper lineage) used for offline interop generation.
+- krulci (https://github.com/krulci) — the open Priconne BepInEx / PrincessDumper lineage this
+  build descends from and re-wires onto current tooling.
+
+Trademarks
+----------
+"Princess Connect! Re:Dive" and "プリコネ" are trademarks of Cygames, Inc.
+"DMM" and "DMM GAME PLAYER" are trademarks of DMM.com LLC.
+"Unity" is a trademark of Unity Technologies.
+
+These names are used nominatively to identify the target game and platform only. This project
+is not affiliated with, endorsed by, or sponsored by Cygames, DMM, or Unity Technologies, and
+ships no corporate branding, logos, or game content.

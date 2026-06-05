@@ -1,0 +1,88 @@
+# D2 — release integrity. On a version/date tag: build the loader, assemble the deploy,
+# package it, publish a SHA-256 checksum, and create a GitHub Release.
+# CI-only release (never hand-built). TODO(D2): pin each action to a commit SHA; add build
+# provenance (actions/attest-build-provenance) + an SBOM as excellence follow-ups.
+name: release
+
+on:
+  push:
+    tags: ['v*', '20*']        # e.g. v1.0.0 or a 20260605 date tag
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. 20260605)'
+        required: true
+
+permissions:
+  contents: write              # create the release
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout BepInEx.Priconne
+        uses: actions/checkout@v4
+        with:
+          path: BepInEx.Priconne
+
+      - name: Checkout BepInEx core fork
+        uses: actions/checkout@v4
+        with: { repository: HetCreep/BepInEx, ref: master, path: BepInEx }
+
+      - name: Checkout Il2CppInterop fork (v1.5.2 + scan fix)
+        uses: actions/checkout@v4
+        with: { repository: HetCreep/Il2CppInterop, ref: fix/u6-findsignature-accessviolation, path: Il2CppInterop }
+
+      - name: Setup .NET 6
+        uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '6.0.x' }
+
+      - name: Build Il2CppInterop runtime
+        run: dotnet build Il2CppInterop/Il2CppInterop.Runtime/Il2CppInterop.Runtime.csproj -c Release --nologo
+
+      - name: Build BepInEx IL2CPP core
+        run: dotnet build BepInEx/BepInEx.sln -c Release -p:GeneratePackageOnBuild=false --nologo
+
+      - name: Assemble BepInEx/core
+        shell: pwsh
+        run: |
+          $stage = "stage/BepInEx/core"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          # BepInEx IL2CPP build output (includes dobby.dll + runtimes/)
+          Copy-Item "BepInEx/bin/Unity.IL2CPP/*" $stage -Recurse -Force
+          # Overlay the Il2CppInterop v1.5.2+fix trio (bind-by-name, drop-in)
+          $rt = "Il2CppInterop/bin/Il2CppInterop.Runtime/net6.0"
+          foreach ($d in 'Il2CppInterop.Runtime.dll','Il2CppInterop.Common.dll','Il2CppInterop.HarmonySupport.dll') {
+            if (Test-Path "$rt/$d") { Copy-Item "$rt/$d" $stage -Force }
+          }
+
+      - name: Add offline-generated interop (game-derived type metadata)
+        shell: pwsh
+        # Interop is generated OFFLINE (no game in CI) — see BUILD.md. It must be supplied as a
+        # workflow artifact / secure source for the build named in COMPATIBILITY.md. Never ship a
+        # loader without it (S1: fail loudly, don't ship a half-package).
+        run: |
+          if (-not (Test-Path "interop") -or -not (Get-ChildItem "interop" -Filter *.dll -ErrorAction SilentlyContinue)) {
+            Write-Error "interop/ is missing. The offline-generated interop for the verified build (COMPATIBILITY.md) must be provided before a release. Aborting."
+            exit 1
+          }
+          Copy-Item "interop" "stage/BepInEx/interop" -Recurse -Force
+
+      - name: Package + checksum
+        shell: pwsh
+        run: |
+          $tag = if ($env:GITHUB_REF -match 'refs/tags/(.+)') { $Matches[1] } else { '${{ github.event.inputs.tag }}' }
+          $zip = "BepInEx.Priconne_$tag.zip"
+          Compress-Archive -Path "stage/*" -DestinationPath $zip -Force
+          (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower() + "  $zip" | Out-File "$zip.sha256" -Encoding ascii
+          "ASSET=$zip" | Out-File $env:GITHUB_ENV -Append
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.ASSET }}
+            ${{ env.ASSET }}.sha256
+          body: |
+            Independent BepInEx 6 (IL2CPP) loader for Princess Connect! Re:Dive.
+            Verified game build: see COMPATIBILITY.md. Verify the download with the published SHA-256.

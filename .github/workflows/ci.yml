@@ -1,0 +1,45 @@
+# D1 — build-green gate. Compiles the full loader stack (the two forks) on every push/PR.
+# It does NOT package; that is release.yml. Green here = the loader still builds from source.
+# TODO(D2): pin each action to a commit SHA (currently major-version tags).
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout BepInEx.Priconne
+        uses: actions/checkout@v4
+        with:
+          path: BepInEx.Priconne
+
+      - name: Checkout BepInEx core fork
+        uses: actions/checkout@v4
+        with:
+          repository: HetCreep/BepInEx
+          ref: master
+          path: BepInEx
+
+      - name: Checkout Il2CppInterop fork (v1.5.2 + Unity-6 FindSignatureInModule scan fix)
+        uses: actions/checkout@v4
+        with:
+          repository: HetCreep/Il2CppInterop
+          ref: fix/u6-findsignature-accessviolation
+          path: Il2CppInterop
+
+      - name: Setup .NET 6
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.x'
+
+      - name: Build Il2CppInterop runtime
+        run: dotnet build Il2CppInterop/Il2CppInterop.Runtime/Il2CppInterop.Runtime.csproj -c Release --nologo
+
+      - name: Build BepInEx IL2CPP core
+        # NU5046 logo.png pack error on the IL2CPP project -> GeneratePackageOnBuild=false
+        run: dotnet build BepInEx/BepInEx.sln -c Release -p:GeneratePackageOnBuild=false --nologo
