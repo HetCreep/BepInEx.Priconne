@@ -58,6 +58,12 @@ jobs:
           foreach ($d in 'Il2CppInterop.Runtime.dll','Il2CppInterop.Common.dll','Il2CppInterop.HarmonySupport.dll') {
             if (Test-Path "$rt/$d") { Copy-Item "$rt/$d" $stage -Force }
           }
+          # Trim native runtimes to win-x64 — the only platform the DMM game ever reaches (drop
+          # osx/linux/arm/x86 = never-reached overkill). The gen tooling (Cpp2IL / dumper) STAYS:
+          # it is the acceptable overkill — the regen path for when Cygames changes the game system
+          # (e.g. the historical Mono-32 -> IL2CPP-64 shift, or a future metadata bump).
+          Get-ChildItem "$stage/runtimes" -Directory -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -ne 'win-x64' } | Remove-Item -Recurse -Force
 
       - name: Fetch offline-generated interop (game-derived type metadata)
         shell: pwsh
