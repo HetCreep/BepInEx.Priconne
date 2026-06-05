@@ -1,7 +1,7 @@
 # D2 — release integrity. On a version/date tag: build the loader, assemble the deploy,
 # package it, publish a SHA-256 checksum, and create a GitHub Release.
-# CI-only release (never hand-built). TODO(D2): pin each action to a commit SHA; add build
-# provenance (actions/attest-build-provenance) + an SBOM as excellence follow-ups.
+# CI-only release (never hand-built). Actions are SHA-pinned (D2). Excellence follow-ups:
+# build provenance (actions/attest-build-provenance) + an SBOM.
 name: release
 
 on:
@@ -21,20 +21,20 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout BepInEx.Priconne
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           path: BepInEx.Priconne
 
       - name: Checkout BepInEx core fork
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with: { repository: HetCreep/BepInEx, ref: master, path: BepInEx }
 
       - name: Checkout Il2CppInterop fork (v1.5.2 + scan fix)
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with: { repository: HetCreep/Il2CppInterop, ref: fix/u6-findsignature-accessviolation, path: Il2CppInterop }
 
       - name: Setup .NET 6
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # v5.3.0
         with: { dotnet-version: '6.0.x' }
 
       - name: Build Il2CppInterop runtime
@@ -78,7 +78,7 @@ jobs:
           "ASSET=$zip" | Out-File $env:GITHUB_ENV -Append
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           files: |
             ${{ env.ASSET }}
