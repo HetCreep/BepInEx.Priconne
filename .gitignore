@@ -3,8 +3,11 @@
 AGENTS.md
 MEMORY.md
 
-# Build-time dependency clones (each has its own .git; CI fetches/builds them — see BUILD.md)
-Il2CppDumper-c01ns/
+# Priconne dev components — checked out here as git worktrees of this repo's own branches
+# (Il2CppInterop / Il2CppDumper / PrincessDumper). Each is a separate working tree; main must
+# not track them. (Upstream dumper source clones were moved to ../_upstream-dumper-clones/.)
+Il2CppInterop/
+Il2CppDumper/
 PrincessDumper/
 
 # Build output
