@@ -65,21 +65,26 @@ static class DownloadTasks
 
         foreach (var entry in zip.Entries)
         {
-            // Use Path.Combine to ensure the trailing slash is preserved.
-            var fullPath = Path.Combine(destination.FullPath, entry.FullName);
-            // Zip Slip guard (CWE-22): reject entries whose canonical path escapes the destination.
+            // Combine WITHOUT canonicalizing yet, so a trailing slash (= a directory entry) survives for
+            // the IsNullOrEmpty(fileName) check below.
+            var combined = Path.Combine(destination.FullPath, entry.FullName);
+            // Zip Slip guard (CWE-22): canonicalize, reject any entry that escapes the destination, and then
+            // use the *resolved* path for every filesystem op — so the value validated here is the exact
+            // value that reaches the sink (File.Create / CreateDirectory). That identity is what makes the
+            // guard a barrier CodeQL's cs/zipslip recognizes (validating a separate GetFullPath copy did not).
+            var resolvedPath = Path.GetFullPath(combined);
             var destRoot = Path.GetFullPath(destination.FullPath) + Path.DirectorySeparatorChar;
-            if (!Path.GetFullPath(fullPath).StartsWith(destRoot, StringComparison.Ordinal))
+            if (!resolvedPath.StartsWith(destRoot, StringComparison.Ordinal))
                 throw new IOException($"Blocked Zip Slip: '{entry.FullName}' escapes the extraction directory.");
-            var fileName = Path.GetFileName(fullPath);
+            var fileName = Path.GetFileName(combined);
             if (string.IsNullOrEmpty(fileName))
             {
-                Directory.CreateDirectory(fullPath);
+                Directory.CreateDirectory(resolvedPath);
                 continue;
             }
 
-            Directory.CreateDirectory(Path.GetDirectoryName(fullPath) ?? throw new InvalidOperationException());
-            await using var fs = File.Create(fullPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(resolvedPath) ?? throw new InvalidOperationException());
+            await using var fs = File.Create(resolvedPath);
             await using var stream = entry.Open();
             var buffer = new byte[4096];
             int read;
