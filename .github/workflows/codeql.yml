@@ -1,0 +1,35 @@
+# Code scanning (CodeQL) — security. Scans the C# loader source for vulnerabilities.
+# build-mode: none = buildless analysis (no compile; avoids the multi-project / BepInEx-subdir build).
+# Actions are SHA-pinned (D2); Dependabot keeps them current.
+name: codeql
+
+on:
+  push:
+    branches: [BepInEx]
+  pull_request:
+  schedule:
+    - cron: '23 4 * * 1'   # weekly, Monday 04:23 UTC
+
+permissions:
+  security-events: write
+  contents: read
+  actions: read
+
+jobs:
+  analyze:
+    name: Analyze C#
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
+        with:
+          languages: csharp
+          build-mode: none
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
+        with:
+          category: "/language:csharp"

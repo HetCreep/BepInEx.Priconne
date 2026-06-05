@@ -6,7 +6,7 @@ name: watch-upstream
 
 on:
   schedule:
-    - cron: '0 6 * * 1'      # weekly, Monday 06:00 UTC
+    - cron: '0 6 1 * *'      # monthly, 1st @ 06:00 UTC — matches BepInEx master cadence (~6 commits/yr, ~1 per 2 months)
   workflow_dispatch:
 
 permissions:

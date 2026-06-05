@@ -4,33 +4,42 @@ How the deployable loader is assembled. CI runs this on release (see `.github/wo
 
 ## Prerequisites
 
-- **.NET 6 SDK** (build floor; the repo also builds on 8/9/10). Pinned via [`global.json`](global.json).
+- **.NET 8 SDK** (build floor — BepInEx master uses C# 12 collection expressions). Pinned via [`global.json`](global.json). The loader still **targets** net35/net46/net6 (output TFMs).
 - NuGet feeds: nuget.org + `nuget.bepinex.dev` + `nuget.samboy.dev` (declared in [`nuget.config`](nuget.config)).
 
-## Sources (the loader spans two forks)
+## Sources
+
+The BepInEx framework source is vendored **in this repo** under `BepInEx/` (on the `BepInEx` branch); the
+interop and dumper are sibling branches of this same repo. The upstream `HetCreep/*` forks are for
+give-and-take only — the loader builds from our own branches so an upstream PR can never move what we ship.
 
 | Source | What it provides |
 |---|---|
-| [`HetCreep/BepInEx`](https://github.com/HetCreep/BepInEx) (`master`) | core framework: preloader, chainloader, Unity IL2CPP runtime, doorstop glue |
-| [`HetCreep/Il2CppInterop`](https://github.com/HetCreep/Il2CppInterop) (v1.5.2 + scan-safety fix) | the interop runtime trio (Runtime / Common / HarmonySupport) |
-| [`c01ns/Il2CppDumper`](https://github.com/c01ns/Il2CppDumper) | metadata-v39 parser — **offline interop generation only**, not shipped to players |
+| `BepInEx/` (this repo, `BepInEx` branch) | core framework: preloader, chainloader, Unity IL2CPP runtime, doorstop glue (upstream BepInEx 6 master + our robustness patches) |
+| `Il2CppInterop` branch (v1.5.2 + scan-safety fix) | the interop runtime trio (Runtime / Common / HarmonySupport) |
+| `Il2CppDumper` branch (c01ns, metadata-v39) | metadata parser — **offline interop generation only**, not shipped to players |
 
 ## Build
 
 ```bash
-# 1. Il2CppInterop runtime (v1.5.2 + the Unity-6 FindSignatureInModule scan fix)
-dotnet build Il2CppInterop/Il2CppInterop.Runtime/Il2CppInterop.Runtime.csproj -c Release
+# Quick compile-check (CI's build-green gate):
+dotnet build BepInEx/BepInEx.sln -c Release -p:GeneratePackageOnBuild=false   # NU5046 logo.png guard
+dotnet build Il2CppInterop/Il2CppInterop.HarmonySupport/Il2CppInterop.HarmonySupport.csproj -c Release  # pulls the trio
 
-# 2. BepInEx IL2CPP core (NU5046 logo.png guard required)
-dotnet build BepInEx/BepInEx.sln -c Release -p:GeneratePackageOnBuild=false
+# Full deployable core (what release.yml does) — Cake fetches the native deps incl dobby.dll:
+cd BepInEx && build.cmd --target MakeDist   # -> BepInEx/dist-il2cpp/BepInEx/core  (WITH dobby.dll)
 ```
 
 ## Assemble `BepInEx/core/`
 
-Copy the BepInEx IL2CPP build output (`BepInEx/bin/Unity.IL2CPP/*`) into `core/`, then overlay the
-Il2CppInterop **v1.5.2+fix** trio (`Il2CppInterop.Runtime.dll` / `Il2CppInterop.Common.dll` /
-`Il2CppInterop.HarmonySupport.dll`) and the native `dobby.dll`. The doorstop `dxgi.dll` +
+Copy the **Cake MakeDist output** (`BepInEx/dist-il2cpp/BepInEx/core/*` — already contains `dobby.dll` and
+the native runtimes) into `core/`, then overlay the Il2CppInterop **v1.5.2+fix** trio
+(`Il2CppInterop.Runtime.dll` / `Il2CppInterop.Common.dll` / `Il2CppInterop.HarmonySupport.dll`) from the
+HarmonySupport build output, and trim `core/runtimes/` to `win-x64`. The doorstop `dxgi.dll` +
 `doorstop_config.ini` + the `dotnet/` CoreCLR host are added at the package root.
+
+> Do NOT assemble from `bin/Unity.IL2CPP/` — that output lacks `dobby.dll` (a plain `dotnet build` never
+> downloads it). Always assemble from the Cake **MakeDist** output. (This was the broken-release bug.)
 
 ## Interop (offline, game-derived type metadata)
 

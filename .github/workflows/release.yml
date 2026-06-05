@@ -28,9 +28,7 @@ jobs:
         with:
           path: BepInEx.Priconne
 
-      - name: Checkout BepInEx core fork
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-        with: { repository: HetCreep/BepInEx, ref: master, path: BepInEx }
+      # BepInEx source lives IN this repo (BepInEx.Priconne/BepInEx/) — no separate fork checkout.
 
       - name: Checkout Il2CppInterop (Priconne dev branch — decoupled from the give-and-take fork)
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -52,7 +50,7 @@ jobs:
         # `--target MakeDist` = Compile + DownloadDependencies + assemble into dist-il2cpp/BepInEx/core
         # WITH dobby.dll. Plain `dotnet build` / `--target Compile` does NOT download dobby — that was the
         # broken-release bug (CI green, artifact missing dobby). MakeDist is reproducible from source.
-        working-directory: BepInEx
+        working-directory: BepInEx.Priconne/BepInEx
         shell: cmd
         run: build.cmd --target MakeDist
 
@@ -62,7 +60,7 @@ jobs:
           $stage = "stage/BepInEx/core"
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
           # Source = Cake MakeDist output (complete core incl dobby.dll + runtimes/), NOT bin/ (no dobby there).
-          $core = "BepInEx/dist-il2cpp/BepInEx/core"
+          $core = "BepInEx.Priconne/BepInEx/dist-il2cpp/BepInEx/core"
           if (-not (Test-Path "$core/dobby.dll")) {
             Write-Error "MakeDist output has no dobby.dll at $core — aborting (would ship a non-booting loader)."; exit 1
           }

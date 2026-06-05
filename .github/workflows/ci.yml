@@ -1,5 +1,5 @@
-# D1 — build-green gate. Compiles the full loader stack (the two forks) on every push/PR.
-# It does NOT package; that is release.yml. Green here = the loader still builds from source.
+# D1 — build-green gate. Compiles the loader stack (this repo's own BepInEx source under BepInEx/ +
+# the Il2CppInterop dev branch) on every push/PR. Does NOT package; that is release.yml.
 # Actions are pinned to commit SHAs (D2); the trailing `# vX.Y.Z` comment tracks the readable version (Dependabot keeps both current).
 name: build
 
@@ -18,12 +18,7 @@ jobs:
         with:
           path: BepInEx.Priconne
 
-      - name: Checkout BepInEx core fork
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-        with:
-          repository: HetCreep/BepInEx
-          ref: master
-          path: BepInEx
+      # BepInEx source now lives IN this repo (BepInEx.Priconne/BepInEx/) — no separate fork checkout.
 
       - name: Checkout Il2CppInterop (Priconne dev branch — v1.5.2 + Unity-6 scan fix)
         # From our BepInEx.Priconne/Il2CppInterop dev branch, NOT the give-and-take fork — the loader is
@@ -34,14 +29,16 @@ jobs:
           ref: Il2CppInterop
           path: Il2CppInterop
 
-      - name: Setup .NET 6
+      - name: Setup .NET (6 = loader target TFM, 8 = build SDK — BepInEx master uses C# 12)
         uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # v5.3.0
         with:
-          dotnet-version: '6.0.x'
+          dotnet-version: |
+            6.0.x
+            8.0.x
 
       - name: Build Il2CppInterop runtime
         run: dotnet build Il2CppInterop/Il2CppInterop.Runtime/Il2CppInterop.Runtime.csproj -c Release --nologo
 
-      - name: Build BepInEx IL2CPP core
+      - name: Build BepInEx IL2CPP core (this repo's own source under BepInEx/)
         # NU5046 logo.png pack error on the IL2CPP project -> GeneratePackageOnBuild=false
-        run: dotnet build BepInEx/BepInEx.sln -c Release -p:GeneratePackageOnBuild=false --nologo
+        run: dotnet build BepInEx.Priconne/BepInEx/BepInEx.sln -c Release -p:GeneratePackageOnBuild=false --nologo
