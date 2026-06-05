@@ -1,5 +1,6 @@
-# D1 — build-green gate. Compiles the loader stack (this repo's own BepInEx source under BepInEx/ +
-# the Il2CppInterop dev branch) on every push/PR. Does NOT package; that is release.yml.
+# D1 — build-green gate. The default branch is the HUB (docs + CI + the assembly that combines the 4
+# component branches). This checks out the BepInEx + Il2CppInterop component branches and compiles them
+# on every push/PR. Does NOT package; that is release.yml.
 # Actions are pinned to commit SHAs (D2); the trailing `# vX.Y.Z` comment tracks the readable version (Dependabot keeps both current).
 name: build
 
@@ -18,7 +19,12 @@ jobs:
         with:
           path: BepInEx.Priconne
 
-      # BepInEx source now lives IN this repo (BepInEx.Priconne/BepInEx/) — no separate fork checkout.
+      - name: Checkout BepInEx (component branch — the framework source)
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          repository: HetCreep/BepInEx.Priconne
+          ref: BepInEx
+          path: BepInEx
 
       - name: Checkout Il2CppInterop (Priconne dev branch — v1.5.2 + Unity-6 scan fix)
         # From our BepInEx.Priconne/Il2CppInterop dev branch, NOT the give-and-take fork — the loader is
@@ -39,6 +45,6 @@ jobs:
       - name: Build Il2CppInterop runtime
         run: dotnet build Il2CppInterop/Il2CppInterop.Runtime/Il2CppInterop.Runtime.csproj -c Release --nologo
 
-      - name: Build BepInEx IL2CPP core (this repo's own source under BepInEx/)
+      - name: Build BepInEx IL2CPP core (the BepInEx component branch)
         # NU5046 logo.png pack error on the IL2CPP project -> GeneratePackageOnBuild=false
-        run: dotnet build BepInEx.Priconne/BepInEx/BepInEx.sln -c Release -p:GeneratePackageOnBuild=false --nologo
+        run: dotnet build BepInEx/BepInEx.sln -c Release -p:GeneratePackageOnBuild=false --nologo
