@@ -13,8 +13,8 @@ on:
         description: 'Release tag (e.g. 20260605)'
         required: true
       interop_tag:
-        description: 'Tag of the interop-* release holding interop.zip for this build (e.g. interop-20260605)'
-        required: true
+        description: 'OPTIONAL: tag of an interop-* release with interop.zip. Leave EMPTY for a loader-core (overlay) release.'
+        required: false
 
 permissions:
   contents: write              # create the release
@@ -65,17 +65,18 @@ jobs:
           Get-ChildItem "$stage/runtimes" -Directory -ErrorAction SilentlyContinue |
             Where-Object { $_.Name -ne 'win-x64' } | Remove-Item -Recurse -Force
 
-      - name: Fetch offline-generated interop (game-derived type metadata)
+      - name: Fetch offline-generated interop (optional — game-derived type metadata)
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        # Interop is generated OFFLINE (no game in CI) and stored SEPARATELY from the code as a
-        # versioned release asset (`interop-<gamebuild>` → interop.zip), so `main` stays loader-code
-        # only and the game-derived bytes never bloat the source tree. Fetch the asset for the build
-        # named in COMPATIBILITY.md. Fail loudly if absent (S1: never ship a loader without interop).
+        # Interop is generated OFFLINE (no game in CI) and stored SEPARATELY as a versioned release
+        # asset (`interop-<gamebuild>` → interop.zip), so the code tree never holds game-derived bytes.
+        # If interop_tag is given, bundle it (a full-install release). If empty, this is a loader-CORE
+        # (overlay) release — ship BepInEx/core only, to overlay onto an existing BepInEx 6 IL2CPP
+        # install (which keeps its own .NET host + doorstop + interop). No interop = no provenance issue.
         run: |
           $interopTag = '${{ github.event.inputs.interop_tag }}'
-          if (-not $interopTag) { Write-Error "interop_tag is required (the interop-* release holding interop.zip). Run the release via 'Run workflow' and supply it."; exit 1 }
+          if (-not $interopTag) { Write-Host "No interop_tag — building a loader-CORE (overlay) release: BepInEx/core only, no interop."; exit 0 }
           gh release download $interopTag --repo $env:GITHUB_REPOSITORY --pattern 'interop.zip' --dir .
           if (-not (Test-Path "interop.zip")) { Write-Error "interop.zip not found in release '$interopTag'."; exit 1 }
           Expand-Archive "interop.zip" -DestinationPath "stage/BepInEx/interop" -Force
@@ -100,5 +101,8 @@ jobs:
             ${{ env.ASSET }}
             ${{ env.ASSET }}.sha256
           body: |
-            Independent BepInEx 6 (IL2CPP) loader for Princess Connect! Re:Dive.
+            Independent BepInEx 6 (IL2CPP) loader for Princess Connect! Re:Dive — official-new BepInEx (`3fab71a`) + Il2CppInterop v1.5.2 + the Unity-6 scan fix. Native runtimes trimmed to win-x64.
+
+            **If no interop is attached, this is a loader-CORE (overlay) release:** extract `BepInEx/core/` over your existing BepInEx 6 IL2CPP install (keeps your .NET host, doorstop, interop, plugins). Game-derived interop + the translation plugins are shipped separately.
+
             Verified game build: see COMPATIBILITY.md. Verify the download with the published SHA-256.
