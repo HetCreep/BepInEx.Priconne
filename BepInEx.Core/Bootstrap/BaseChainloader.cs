@@ -315,7 +315,6 @@ public abstract class BaseChainloader<TPlugin>
             var plugins = DiscoverPlugins();
             Logger.Log(LogLevel.Info, $"{plugins.Count} plugin{(plugins.Count == 1 ? "" : "s")} to load");
             LoadPlugins(plugins);
-            Finished?.Invoke();
         }
         catch (Exception ex)
         {
@@ -326,6 +325,16 @@ public abstract class BaseChainloader<TPlugin>
             catch { }
 
             Logger.Log(LogLevel.Error, $"Error occurred loading plugins: {ex}");
+        }
+
+        // Isolated: a throwing Finished listener must not be mislabeled as a plugin-load failure.
+        try
+        {
+            Finished?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            Logger.Log(LogLevel.Error, $"Error in Finished event handler: {ex}");
         }
 
         Logger.Log(LogLevel.Message, "Chainloader startup complete");

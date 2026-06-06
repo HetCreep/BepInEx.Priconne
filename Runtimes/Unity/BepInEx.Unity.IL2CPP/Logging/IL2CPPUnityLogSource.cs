@@ -32,7 +32,9 @@ public class IL2CPPUnityLogSource : ILogSource
             LogType.Exception => LogLevel.Error,
             _                 => LogLevel.Message
         };
-        LogEvent?.Invoke(this, new LogEventArgs(logLine, level, this));
+        // Include the stack trace Unity passes in `exception` — dropping it leaves IL2CPP errors untraceable.
+        var message = string.IsNullOrEmpty(exception) ? logLine : $"{logLine}\n{exception}";
+        LogEvent?.Invoke(this, new LogEventArgs(message, level, this));
     }
 
     private delegate IntPtr SetLogCallbackDefinedDelegate(bool defined);
