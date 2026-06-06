@@ -64,7 +64,7 @@ asset for the build named in [COMPATIBILITY.md](COMPATIBILITY.md) and assembles 
 
 ```
 <game folder>/
-├── dxgi.dll                      # UnityDoorstop proxy
+├── dxgi.dll                      # UnityDoorstop proxy — MUST be the dxgi host (see note below)
 ├── doorstop_config.ini
 ├── dotnet/                       # bundled CoreCLR host
 └── BepInEx/
@@ -74,6 +74,16 @@ asset for the build named in [COMPATIBILITY.md](COMPATIBILITY.md) and assembles 
     ├── plugins/                  # (translation plugins ship separately)
     └── patchers/
 ```
+
+> **⚠️ Proxy host: Priconne requires the `dxgi` doorstop proxy — NOT `winhttp`.** Priconne uses winhttp
+> very early (DMM/DRM), and the `winhttp.dll` doorstop proxy makes the game **silently fail to launch**
+> (verified by isolation: winhttp proxy → no launch; dxgi proxy → launches + injects). The game imports
+> both dxgi and winhttp; use the **dxgi** host and keep no local `winhttp.dll` (the game falls back to the
+> system winhttp). This is normal doorstop usage (it supports multiple proxy hosts to avoid such conflicts),
+> not a doorstop bug. **UnityDoorstop releases ship only a winhttp proxy** (v4.5.0 has no dxgi variant), so
+> the dxgi proxy must be built from doorstop source (dxgi proxygen) or vendored — auto-shipping it in CI is
+> a TODO. A loader-CORE overlay release ships no proxy (the user keeps their own); state the dxgi requirement
+> in user docs.
 
 Output: `BepInEx.Priconne_<date>.zip` + its `.sha256`. Reproducibility: SDK pinned (`global.json`),
 NuGet locked (`packages.lock.json` once the build is wired in CI), source commits recorded per release.
