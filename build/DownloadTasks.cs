@@ -65,13 +65,9 @@ static class DownloadTasks
 
         foreach (var entry in zip.Entries)
         {
-            // Combine WITHOUT canonicalizing yet, so a trailing slash (= a directory entry) survives for
-            // the IsNullOrEmpty(fileName) check below.
+            // Combine first (keeps the trailing slash that marks a directory entry).
             var combined = Path.Combine(destination.FullPath, entry.FullName);
-            // Zip Slip guard (CWE-22): canonicalize, reject any entry that escapes the destination, and then
-            // use the *resolved* path for every filesystem op — so the value validated here is the exact
-            // value that reaches the sink (File.Create / CreateDirectory). That identity is what makes the
-            // guard a barrier CodeQL's cs/zipslip recognizes (validating a separate GetFullPath copy did not).
+            // Zip Slip guard (CWE-22): reject entries whose resolved path escapes the destination.
             var resolvedPath = Path.GetFullPath(combined);
             var destRoot = Path.GetFullPath(destination.FullPath) + Path.DirectorySeparatorChar;
             if (!resolvedPath.StartsWith(destRoot, StringComparison.Ordinal))
