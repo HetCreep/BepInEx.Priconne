@@ -280,6 +280,11 @@ internal static partial class Il2CppInteropManager
         catch (Exception e)
         {
             Logger.LogError($"Failed to generate Il2Cpp interop assemblies: {e}");
+            Logger.LogError($"Interop assemblies in '{IL2CPPInteropAssemblyPath}' are now absent or incomplete, so " +
+                            "plugins will fail to load (expect cryptic FileNotFoundException for Il2Cpp* assemblies " +
+                            "below). Fix: restore the pre-baked interop folder shipped with this loader and keep " +
+                            "[IL2CPP] UpdateInteropAssemblies=false. On-the-fly generation cannot run on the player " +
+                            "build for this game (its metadata is generated offline and shipped pre-baked).");
         }
     }
 
