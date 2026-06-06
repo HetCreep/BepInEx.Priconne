@@ -28,8 +28,9 @@ public static class ConsoleManager
 
     public static readonly ConfigEntry<bool> ConfigConsoleEnabled = ConfigFile.CoreConfig.Bind(
      "Logging.Console", "Enabled",
-     true,
-     "Enables showing a console for log output.");
+     false,
+     "Enables showing a console for log output. Default off: a config-less/fresh player install stays as " +
+     "quiet as the public ImaterialC loader (ban-risk parity); set true for dev / interop-gen to watch output.");
 
     public static readonly ConfigEntry<bool> ConfigPreventClose = ConfigFile.CoreConfig.Bind(
      "Logging.Console", "PreventClose",
