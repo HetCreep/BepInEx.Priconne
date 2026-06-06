@@ -3,14 +3,15 @@
 AGENTS.md
 MEMORY.md
 
-# The 4 component branches — checked out here as git worktrees of this repo's own branches.
-# The default branch (main) is the HUB (docs + the download/assembly point); the 4 components
-# (BepInEx / Il2CppInterop / Il2CppDumper / PrincessDumper) each live on a sibling branch and
+# The component branches — checked out here as git worktrees of this repo's own branches.
+# The default branch (main) is the HUB (docs + the download/assembly point); the components
+# (BepInEx / Il2CppInterop / Cpp2IL / PrincessDumper) each live on a sibling branch and
 # are mounted here as separate working trees. main must NOT track them.
-# (Upstream dumper source clones were moved to ../_upstream-dumper-clones/.)
+# (Cpp2IL replaced the retired c01ns/Il2CppDumper rail 2026-06-06 — see the Cpp2IL branch README;
+#  upstream dumper source clones were moved to ../_upstream-dumper-clones/.)
 BepInEx/
 Il2CppInterop/
-Il2CppDumper/
+Cpp2IL/
 PrincessDumper/
 
 # Build output

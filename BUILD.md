@@ -10,8 +10,10 @@ How the deployable loader is assembled. CI runs this on release (see `.github/wo
 ## Sources
 
 The BepInEx framework source is vendored **in this repo** under `BepInEx/` (on the `BepInEx` branch); the
-interop and dumper are sibling branches of this same repo. The upstream `HetCreep/*` forks are for
-give-and-take only — the loader builds from our own branches so an upstream PR can never move what we ship.
+interop is a sibling `Il2CppInterop` branch. The parser (Cpp2IL) is a fetched NuGet dep — the `Cpp2IL`
+branch is a component marker, not built source; the offline extract tool is the `PrincessDumper` sibling
+branch (run offline, never shipped). The upstream `HetCreep/*` forks are for give-and-take only — the
+loader builds from our own branches so an upstream PR can never move what we ship.
 
 | Source | What it provides |
 |---|---|
