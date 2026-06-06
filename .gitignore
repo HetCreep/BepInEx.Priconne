@@ -5,14 +5,16 @@ MEMORY.md
 
 # The component branches — checked out here as git worktrees of this repo's own branches.
 # The default branch (main) is the HUB (docs + the download/assembly point); the components
-# (BepInEx / Il2CppInterop / Cpp2IL / PrincessDumper) each live on a sibling branch and
-# are mounted here as separate working trees. main must NOT track them.
+# (BepInEx / Il2CppInterop / Cpp2IL / PrincessDumper / UnityDoorstop) each live on a sibling
+# branch and are mounted here as separate working trees. main must NOT track them.
 # (Cpp2IL replaced the retired c01ns/Il2CppDumper rail 2026-06-06 — see the Cpp2IL branch README;
-#  upstream dumper source clones were moved to ../_upstream-dumper-clones/.)
+#  UnityDoorstop vendored 2026-06-06 to build OUR dxgi proxy — winhttp host fails on Priconne;
+#  upstream source clones were moved to ../_upstream-clones/ + ../_upstream-dumper-clones/.)
 BepInEx/
 Il2CppInterop/
 Cpp2IL/
 PrincessDumper/
+UnityDoorstop/
 
 # Build output
 [Bb]in/
