@@ -193,37 +193,26 @@ internal static partial class Il2CppInteropManager
 
     private static bool CheckIfGenerationRequired()
     {
-        static bool NeedGenerationOrSkip()
+        // The shipped player build ships pre-baked interop with [IL2CPP] UpdateInteropAssemblies=false and
+        // has no dumper/Cpp2IL, so it must NEVER generate. Handle that case first and return before any
+        // hashing: ComputeHash() streams the whole ~174 MB GameAssembly.dll through MD5, and doing that on
+        // every launch only to decide a regen that cannot happen here is pure cold-start waste. Confirm the
+        // interop is present and degrade with an actionable error if it is not.
+        if (!UpdateInteropAssemblies.Value)
         {
-            if (!UpdateInteropAssemblies.Value)
-            {
-                var hash = ComputeHash();
-                Logger.LogWarning($"Interop assemblies are possibly out of date. To disable this message, create file {HashPath} with the following contents: {hash}");
-                return false;
-            }
-
-            return true;
-        }
-
-        if (!Directory.Exists(IL2CPPInteropAssemblyPath))
-        {
-            if (UpdateInteropAssemblies.Value)
-                return true; // auto-heal: generate the missing interop
-
-            // UpdateInteropAssemblies=false: never generate (the user opted out / generation cannot run on
-            // this build). The interop is absent, so plugins will fail to load -- say so actionably, then
-            // degrade. Do NOT attempt an impossible generation that only fails and empties the folder.
-            Logger.LogError($"Interop assemblies are missing from '{IL2CPPInteropAssemblyPath}' and " +
-                            "[IL2CPP] UpdateInteropAssemblies=false, so they will NOT be generated. Plugins that " +
-                            "use Unity/game types will fail to load -- restore the pre-baked interop folder shipped " +
-                            "with this loader.");
+            if (!Directory.Exists(IL2CPPInteropAssemblyPath))
+                Logger.LogError($"Interop assemblies are missing from '{IL2CPPInteropAssemblyPath}' and " +
+                                "[IL2CPP] UpdateInteropAssemblies=false, so they will NOT be generated. Plugins that " +
+                                "use Unity/game types will fail to load -- restore the pre-baked interop folder shipped " +
+                                "with this loader.");
             return false;
         }
 
-        if (!File.Exists(HashPath))
-            return NeedGenerationOrSkip();
+        // UpdateInteropAssemblies=true: generate on first run, or regenerate when the game's assemblies change.
+        if (!Directory.Exists(IL2CPPInteropAssemblyPath) || !File.Exists(HashPath))
+            return true;
 
-        if (ComputeHash() != File.ReadAllText(HashPath) && NeedGenerationOrSkip())
+        if (ComputeHash() != File.ReadAllText(HashPath))
         {
             Logger.LogInfo("Detected outdated interop assemblies, will regenerate them now");
             return true;
@@ -423,6 +412,16 @@ internal static partial class Il2CppInteropManager
     {
         if (!PreloadIL2CPPInteropAssemblies.Value)
             return;
+
+        // Contain a missing/misdeployed pre-baked interop folder: Directory.EnumerateFiles would throw
+        // DirectoryNotFoundException (the per-file try/catch below only wraps Assembly.Load), surfacing as a
+        // generic chainloader stack. Degrade with an actionable log instead.
+        if (!Directory.Exists(IL2CPPInteropAssemblyPath))
+        {
+            Logger.LogError($"Interop folder '{IL2CPPInteropAssemblyPath}' is missing -- restore the pre-baked " +
+                            "interop folder shipped with this loader. Skipping interop preload.");
+            return;
+        }
 
         var sw = Stopwatch.StartNew();
 
