@@ -58,8 +58,9 @@ offline-generated `interop/`, and package with the doorstop + `.NET` host. CI do
 
 Fork of [BepInEx/BepInEx](https://github.com/BepInEx/BepInEx) — **LGPL-2.1** (see [LICENSE](LICENSE)).
 Component lineage and attribution in [NOTICE](NOTICE): krulci (loader/dumper lineage),
-[c01ns/Il2CppDumper](https://github.com/c01ns/Il2CppDumper) (v39 metadata parser),
-[Il2CppInterop](https://github.com/BepInEx/Il2CppInterop). Any derivative stays LGPL-compatible;
+[c01ns/Il2CppDumper](https://github.com/c01ns/Il2CppDumper) (the reference parser that established
+metadata-**v39** for this build, Gate-2), [Cpp2IL](https://github.com/SamboyCoding/Cpp2IL) (the bundled
+interop-gen parser) and [Il2CppInterop](https://github.com/BepInEx/Il2CppInterop). Any derivative stays LGPL-compatible;
 keep the LGPL notice and upstream attribution intact.
 
 ## Legal & ban-risk

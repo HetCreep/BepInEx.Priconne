@@ -17,7 +17,11 @@ give-and-take only — the loader builds from our own branches so an upstream PR
 |---|---|
 | `BepInEx/` (this repo, `BepInEx` branch) | core framework: preloader, chainloader, Unity IL2CPP runtime, doorstop glue (upstream BepInEx 6 master + our robustness patches) |
 | `Il2CppInterop` branch (v1.5.2 + scan-safety fix) | the interop runtime trio (Runtime / Common / HarmonySupport) |
-| `Il2CppDumper` branch (c01ns, metadata-v39) | metadata parser — **offline interop generation only**, not shipped to players |
+| Cpp2IL (`Samboy063.Cpp2IL.Core 2022.1.0-pre-release.21`, NuGet — bundled in BepInEx) | the IL2CPP **metadata parser** (supports v23–106 incl **v39**) — the version gates which metadata versions parse; runs **offline** for interop generation only, never on the player |
+
+> The interop-gen parser is **Cpp2IL/LibCpp2IL** (a NuGet dep bundled in BepInEx), not a separate
+> branch. **c01ns/Il2CppDumper** (Perfare lineage) was the reference parser that first established
+> metadata-**v39** for this build (Gate-2) — credited in [NOTICE](NOTICE), not a build source.
 
 ## Build
 
@@ -44,7 +48,7 @@ HarmonySupport build output, and trim `core/runtimes/` to `win-x64`. The doorsto
 ## Interop (offline, game-derived type metadata)
 
 The 106 pre-baked interop assemblies are **generated offline** on a machine that has the target game,
-from the game's own loaded type metadata (via Cpp2IL / Il2CppInterop + the c01ns v39 parser). They are
+from the game's own loaded type metadata (via **Cpp2IL/LibCpp2IL** — the bundled parser — + Il2CppInterop). They are
 **type metadata, not Cygames content**, and shipping them prebuilt is *lower* ban-risk than a runtime
 dump on the player (which this build never does — `UpdateInteropAssemblies=false`). CI cannot generate
 interop (no game in CI).

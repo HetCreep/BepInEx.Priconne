@@ -12,8 +12,12 @@ are incorporated or referenced; their licenses and attribution are preserved:
 - Il2CppInterop (https://github.com/BepInEx/Il2CppInterop) — the IL2CPP <-> managed interop
   runtime (class injection, signature scanning, Cpp2IL-generated assemblies). The shipped
   build includes the FindSignatureInModule scan-safety fix contributed upstream.
-- c01ns/Il2CppDumper (https://github.com/c01ns/Il2CppDumper) — the metadata-version 39 parser
-  (Perfare/Il2CppDumper lineage) used for offline interop generation.
+- Cpp2IL (https://github.com/SamboyCoding/Cpp2IL) — MIT. The IL2CPP metadata parser (LibCpp2IL)
+  bundled in BepInEx; parses the game's global-metadata.dat (v23-106, incl. v39) into the dummy
+  assemblies Il2CppInterop converts, during offline interop generation.
+- c01ns/Il2CppDumper (https://github.com/c01ns/Il2CppDumper) — MIT (Perfare/Il2CppDumper lineage).
+  The reference parser that first established metadata-version 39 support for this build (Gate-2).
+  Credit retained per its MIT license.
 - krulci (https://github.com/krulci) — the open Priconne BepInEx / PrincessDumper lineage this
   build descends from and re-wires onto current tooling.
 

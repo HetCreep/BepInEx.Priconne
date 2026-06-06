@@ -43,10 +43,16 @@ boot-test**. Repeatable and scriptable.
 ## B. Game updates its Unity (e.g. 6.0 → 6.x) — the heavier path
 
 1. (If needed) bump BepInEx first (section A).
-2. **Regen interop** — Cpp2IL / the dumper against the new game build's metadata (offline; never on a player).
+2. **Regen interop** — via **Cpp2IL/LibCpp2IL** (the bundled parser) + Il2CppInterop, against the new game
+   build's metadata (offline; never on a player).
 3. **Re-derive the metadata signature** (Gate 1 — `MetadataSignatureToScan` / `MagicToFix` /
    `ObfuscatedMetadataHeaderOffset`). This is the maintainer's reverse-engineering step.
-4. **Swap the dumper** if the IL2CPP metadata version bumped (e.g. v39 → v40) — use a parser that supports it.
+4. **Bump the parser if the IL2CPP metadata version bumped** (e.g. v39 → v40). The version gate is
+   **Cpp2IL/LibCpp2IL**, *not* a branch swap: bump `Samboy063.Cpp2IL.Core` in
+   `BepInEx/Runtimes/Unity/BepInEx.Unity.IL2CPP/BepInEx.Unity.IL2CPP.csproj` to a release whose LibCpp2IL
+   supports the new version (check the release's `LibCpp2IL` notes), then build-verify the
+   `Cpp2IlApi`/`RunCpp2Il` calls still resolve. (c01ns/Il2CppDumper was the original v39 reference; the
+   live interop-gen parser is the bundled Cpp2IL.)
 5. **Build + boot-test** on the new game build.
 6. **Commit + push + cut a release.** Update `COMPATIBILITY.md` with the new verified game build.
 

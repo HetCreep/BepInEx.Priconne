@@ -19,8 +19,13 @@ use a release whose verified build matches your install.
 |---|---|
 | BepInEx core | **6.0.0** (upstream dev build `be.755`, commit `3fab71a`) + our reliability fixes — **Priconne improved edition** |
 | Il2CppInterop | **v1.5.2** + the Unity-6 `FindSignatureInModule` scan-safety fix |
-| Metadata parser | c01ns/Il2CppDumper (metadata v39) — **offline interop generation only** |
+| Metadata parser | **Cpp2IL / LibCpp2IL** (`Samboy063.Cpp2IL.Core 2022.1.0-pre-release.21`, supports metadata v23–106 incl. **v39**) — bundled in BepInEx, runs **offline** for interop generation only |
 | Interop | pre-baked, offline-generated (106 assemblies), `UpdateInteropAssemblies=false` |
+
+> The interop-gen **parser** is Cpp2IL/LibCpp2IL (bundled in BepInEx; the version above is what gates
+> which IL2CPP metadata versions parse). **c01ns/Il2CppDumper** (Perfare lineage) was the reference
+> parser that first established metadata-**v39** support for this build (Gate-2) — credited in NOTICE,
+> not a shipped component.
 
 ## When the game updates
 
