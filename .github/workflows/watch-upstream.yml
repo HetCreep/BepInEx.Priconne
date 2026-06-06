@@ -19,6 +19,7 @@ env:
   BEPINEX_BASE: '3fab71a'         # BepInEx/BepInEx master @ our fork base
   INTEROP_BASE: '61f44a5'         # BepInEx/Il2CppInterop master @ v1.5.2 (our base)
   IMAT_CORE_BASE: '2026-05-27'    # ImaterialC src/BepInEx/core last-commit date (game-moved signal)
+  DOORSTOP_BASE: '4.5.0'          # NeighTools/UnityDoorstop latest release — the winhttp proxy we ship (fetched dep)
 
 jobs:
   watch:
@@ -32,10 +33,12 @@ jobs:
           bep=$(gh api repos/BepInEx/BepInEx/commits/master --jq '.sha' | cut -c1-7)
           intr=$(gh api repos/BepInEx/Il2CppInterop/commits/master --jq '.sha' | cut -c1-7)
           imat=$(gh api 'repos/ImaterialC/PriconneRe-TL/commits?path=src/BepInEx/core&per_page=1' --jq '.[0].commit.author.date' | cut -c1-10)
+          door=$(gh api repos/NeighTools/UnityDoorstop/releases/latest --jq '.tag_name' | sed 's/^v//')
           : > moved.md
           [ "$bep"  != "$BEPINEX_BASE" ]   && echo "- **BepInEx** master moved: \`$BEPINEX_BASE\` → \`$bep\` — review for fixes to pull into our fork." >> moved.md || true
           [ "$intr" != "$INTEROP_BASE" ]   && echo "- **Il2CppInterop** master moved: \`$INTEROP_BASE\` → \`$intr\` — review for fixes to pull into our fork." >> moved.md || true
           [ "$imat" != "$IMAT_CORE_BASE" ] && echo "- **ImaterialC** loader (\`src/BepInEx/core\`) changed: $IMAT_CORE_BASE → $imat — the game likely moved; re-verify our \`core\` boots + regen interop if stale." >> moved.md || true
+          [ "$door" != "$DOORSTOP_BASE" ] && echo "- **UnityDoorstop** released \`$DOORSTOP_BASE\` → \`$door\` — the doorstop proxy we fetch + ship; review + bump DoorstopVersion in the Cake build." >> moved.md || true
           if [ -s moved.md ]; then
             { echo "Tracked upstreams moved (weekly watch):"; echo; cat moved.md; echo; \
               echo "After reviewing, bump the baselines in \`.github/workflows/watch-upstream.yml\`."; } > body.md
