@@ -206,7 +206,19 @@ internal static partial class Il2CppInteropManager
         }
 
         if (!Directory.Exists(IL2CPPInteropAssemblyPath))
-            return true;
+        {
+            if (UpdateInteropAssemblies.Value)
+                return true; // auto-heal: generate the missing interop
+
+            // UpdateInteropAssemblies=false: never generate (the user opted out / generation cannot run on
+            // this build). The interop is absent, so plugins will fail to load -- say so actionably, then
+            // degrade. Do NOT attempt an impossible generation that only fails and empties the folder.
+            Logger.LogError($"Interop assemblies are missing from '{IL2CPPInteropAssemblyPath}' and " +
+                            "[IL2CPP] UpdateInteropAssemblies=false, so they will NOT be generated. Plugins that " +
+                            "use Unity/game types will fail to load -- restore the pre-baked interop folder shipped " +
+                            "with this loader.");
+            return false;
+        }
 
         if (!File.Exists(HashPath))
             return NeedGenerationOrSkip();
