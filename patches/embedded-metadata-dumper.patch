@@ -197,8 +197,8 @@ index 0000000..4b7bd12
 +        if (!read)
 +        {
 +            logger.LogError("Failed to read process memory of {Module}", module.ModuleName);
-+            il2cppBytes = Array.Empty<byte>();
-+            metadataBytes = Array.Empty<byte>();
++            il2cppBytes = [];
++            metadataBytes = [];
 +            return;
 +        }
 +
