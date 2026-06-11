@@ -83,15 +83,10 @@ public class IL2CPPChainloader : BaseChainloader<BasePlugin>
         if (methodName == "Internal_ActiveSceneChanged")
             try
             {
-                // Unhook first so this detour fires exactly once: even if the chainloader below throws, it must
-                // not stay hooked and re-fire (and re-fail) on every later invoke.
+                // Unhook up front so the detour fires once even if setup below throws.
                 unhook = true;
 
-                // SetupUnityLogging references Il2Cpp interop types (UnityEngine.Application/LogType). Keep it in
-                // its own method so OnInvokeMethod itself does NOT reference interop -- if the interop assemblies
-                // are missing, only that call fails (caught below) instead of OnInvokeMethod failing to JIT. A
-                // JIT failure throws before the method body runs, so it would escape this try/catch and crash the
-                // game; degrading here lets the game keep running unmodded.
+                // Isolated so a missing-interop JIT failure happens inside the try (caught), not in OnInvokeMethod itself.
                 SetupUnityLogging();
 
                 Il2CppInteropManager.PreloadInteropAssemblies();
@@ -100,7 +95,7 @@ public class IL2CPPChainloader : BaseChainloader<BasePlugin>
             }
             catch (Exception ex)
             {
-                Logger.Log(LogLevel.Fatal, "Unable to execute IL2CPP chainloader -- continuing unmodded so the game still runs.");
+                Logger.Log(LogLevel.Fatal, "Unable to execute IL2CPP chainloader, no plugins will be loaded");
                 Logger.Log(LogLevel.Error, ex);
             }
 
@@ -116,8 +111,7 @@ public class IL2CPPChainloader : BaseChainloader<BasePlugin>
         return result;
     }
 
-    // Isolated from OnInvokeMethod on purpose: this references Il2Cpp interop types, so it must live in its own
-    // method that is only JIT-compiled when actually called (inside OnInvokeMethod's try). See OnInvokeMethod.
+    // JIT-compiled only when called here, so OnInvokeMethod needs no interop assemblies present to JIT.
     private static void SetupUnityLogging()
     {
         if (!ConfigUnityLogging.Value)
