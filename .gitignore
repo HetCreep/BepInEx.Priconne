@@ -3,15 +3,11 @@
 AGENTS.md
 MEMORY.md
 
-# The component branches — checked out here as git worktrees of this repo's own branches.
-# The default branch (main) is the HUB (docs + the download/assembly point); the components
-# (Il2CppInterop / Cpp2IL / PrincessDumper) each live on a sibling branch and are mounted here
-# as separate working trees. main must NOT track them.
-# (BepInEx + UnityDoorstop are no longer vendored — their fixes are merged/handled upstream, so CI
-#  pulls them from upstream directly; see release.yml. Cpp2IL is a NuGet-pin marker branch.)
+# Il2CppInterop is the one remaining component branch — checked out here as a git worktree of this
+# repo's own branch. The default branch (main) is the HUB (docs + the download/assembly point);
+# main must NOT track it. (BepInEx + UnityDoorstop pull from upstream in CI; Cpp2IL is a NuGet pin
+# in the Il2CppInterop csproj; the offline dumper is patches/embedded-metadata-dumper.patch.)
 Il2CppInterop/
-Cpp2IL/
-PrincessDumper/
 
 # Build output
 [Bb]in/
