@@ -33,9 +33,9 @@ jobs:
       - name: Checkout hub
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Checkout BepInEx component (the loader framework source)
+      - name: Checkout Il2CppInterop component (OUR owned source — BepInEx is pulled from upstream now, scanned upstream)
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with: { repository: HetCreep/BepInEx.Priconne, ref: BepInEx, path: BepInEx }
+        with: { repository: HetCreep/BepInEx.Priconne, ref: Il2CppInterop, path: Il2CppInterop }
 
       # Il2CppInterop scan TEMPORARILY DISABLED (focus = BepInEx). Re-enable by uncommenting:
       # - name: Checkout Il2CppInterop component (our v1.5.2 + scan-fix dev branch)

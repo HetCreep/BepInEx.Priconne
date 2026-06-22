@@ -28,9 +28,9 @@ jobs:
         with:
           path: BepInEx.Priconne
 
-      - name: Checkout BepInEx (component branch — the framework source)
+      - name: Checkout BepInEx (UPSTREAM master — our bugfixes are merged upstream; pull theirs, no fork-delta)
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with: { repository: HetCreep/BepInEx.Priconne, ref: BepInEx, path: BepInEx }
+        with: { repository: BepInEx/BepInEx, ref: master, path: BepInEx, fetch-depth: 0 }   # fetch-depth:0 -> upstream tags for Cake git-describe versioning
 
       - name: Checkout Il2CppInterop (Priconne dev branch — decoupled from the give-and-take fork)
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -54,7 +54,7 @@ jobs:
         # broken-release bug (CI green, artifact missing dobby). MakeDist is reproducible from source.
         working-directory: BepInEx
         shell: cmd
-        run: build.cmd --target MakeDist
+        run: build.cmd --target=MakeDist --build-type=BleedingEdge
 
       - name: Assemble BepInEx/core
         shell: pwsh
@@ -123,7 +123,7 @@ jobs:
             ${{ env.ASSET }}
             ${{ env.ASSET }}.sha256
           body: |
-            Independent BepInEx 6 (IL2CPP) loader for Princess Connect! Re:Dive — official-new BepInEx (`3fab71a`) + Il2CppInterop v1.5.2 + the Unity-6 scan fix. Native runtimes trimmed to win-x64.
+            Independent BepInEx 6 (IL2CPP) loader for Princess Connect! Re:Dive — upstream BepInEx master (our fixes merged upstream, pulled directly) + Il2CppInterop v1.5.3 + the #267 Unity-6 scan fix. Native runtimes trimmed to win-x64.
 
             **If no interop is attached, this is a loader-CORE (overlay) release:** extract `BepInEx/core/` over your existing BepInEx 6 IL2CPP install (keeps your .NET host, doorstop, interop, plugins). Game-derived interop + the translation plugins are shipped separately.
 
