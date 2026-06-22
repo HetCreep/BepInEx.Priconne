@@ -15,6 +15,10 @@ on:
       interop_tag:
         description: 'OPTIONAL: tag of an interop-* release with interop.zip. Leave EMPTY for a loader-core (overlay) release.'
         required: false
+  workflow_call:            # callable by auto-interop.yml in the SAME run (GITHUB_TOKEN can't fire workflow_dispatch -> no PAT needed)
+    inputs:
+      tag: { required: true, type: string }
+      interop_tag: { required: false, type: string }
 
 permissions:
   contents: write              # create the release
@@ -83,7 +87,7 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          INTEROP_TAG: ${{ github.event.inputs.interop_tag }}   # via env, not inline — no shell injection
+          INTEROP_TAG: ${{ inputs.interop_tag }}   # via env, not inline — no shell injection
         # Interop is generated OFFLINE (no game in CI) and stored SEPARATELY as a versioned release
         # asset (`interop-<gamebuild>` → interop.zip), so the code tree never holds game-derived bytes.
         # If interop_tag is given, bundle it (a full-install release). If empty, this is a loader-CORE
@@ -102,7 +106,7 @@ jobs:
       - name: Package + checksum
         shell: pwsh
         env:
-          RELEASE_TAG: ${{ github.event.inputs.tag }}   # via env (dispatch-only — no tag-push ref to parse)
+          RELEASE_TAG: ${{ inputs.tag }}   # via env (dispatch/call input — no tag-push ref to parse)
         run: |
           # Final integrity gate (D2): never publish a core missing the native hook lib or the loader entry DLL.
           $core = "stage/BepInEx/core"
@@ -118,7 +122,7 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
-          tag_name: ${{ github.event.inputs.tag }}
+          tag_name: ${{ inputs.tag }}
           files: |
             ${{ env.ASSET }}
             ${{ env.ASSET }}.sha256
