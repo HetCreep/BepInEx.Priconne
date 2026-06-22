@@ -61,8 +61,8 @@ jobs:
         run: |
           $stage = "stage/BepInEx/core"
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
-          # Source = Cake MakeDist output (complete core incl dobby.dll + runtimes/), NOT bin/ (no dobby there).
-          $core = "BepInEx/dist-il2cpp/BepInEx/core"
+          # Source = Cake MakeDist output: bin/dist/<target>/BepInEx/core (complete core incl dobby.dll + runtimes/).
+          $core = "BepInEx/bin/dist/Unity.IL2CPP-win-x64/BepInEx/core"
           if (-not (Test-Path "$core/dobby.dll")) {
             Write-Error "MakeDist output has no dobby.dll at $core — aborting (would ship a non-booting loader)."; exit 1
           }
