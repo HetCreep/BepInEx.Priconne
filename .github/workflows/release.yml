@@ -24,16 +24,16 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout BepInEx.Priconne
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           path: BepInEx.Priconne
 
       - name: Checkout BepInEx (component branch — the framework source)
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with: { repository: HetCreep/BepInEx.Priconne, ref: BepInEx, path: BepInEx }
 
       - name: Checkout Il2CppInterop (Priconne dev branch — decoupled from the give-and-take fork)
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with: { repository: HetCreep/BepInEx.Priconne, ref: Il2CppInterop, path: Il2CppInterop }
 
       - name: Setup .NET (6 = loader target, 8 = Cake build host)
