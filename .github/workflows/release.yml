@@ -28,16 +28,16 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout BepInEx.Priconne
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: BepInEx.Priconne
 
       - name: Checkout BepInEx (UPSTREAM master — our bugfixes are merged upstream; pull theirs, no fork-delta)
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { repository: BepInEx/BepInEx, ref: master, path: BepInEx, fetch-depth: 0 }   # fetch-depth:0 -> upstream tags for Cake git-describe versioning
 
       - name: Checkout Il2CppInterop (Priconne dev branch — decoupled from the give-and-take fork)
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { repository: HetCreep/BepInEx.Priconne, ref: Il2CppInterop, path: Il2CppInterop }
 
       - name: Setup .NET (6 = loader target, 8 = Cake build host)
