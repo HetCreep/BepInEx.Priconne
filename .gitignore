@@ -354,3 +354,6 @@ MigrationBackup/
 .ionide/
 
 launchsettings.json
+
+# agent-local (governance lives at the Modloader hub, never in a component branch)
+.claude/
