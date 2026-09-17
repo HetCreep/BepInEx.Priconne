@@ -3,8 +3,8 @@
 # workspace, so the hub (main) must pull the BepInEx component in first (it holds the actual source;
 # main itself is docs-only). This is what caught the Zip Slip (CWE-22) in DownloadTasks.cs.
 #
-# SCOPE: BepInEx ONLY (current focus). The Il2CppInterop scan is TEMPORARILY DISABLED — re-enable its
-# checkout step below when work shifts to that component.
+# SCOPE: the hub + our Il2CppInterop component branch (BepInEx itself is pulled from upstream in
+# release.yml, not vendored here, so it is scanned upstream — not this workflow's job).
 #
 # Trigger model mirrors ci.yml: component branches carry no workflow, so the weekly schedule + PRs +
 # a hub change to this file + manual dispatch are the drivers. Re-vendored a component? Dispatch by hand.
@@ -37,18 +37,13 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with: { repository: HetCreep/BepInEx.Priconne, ref: Il2CppInterop, path: Il2CppInterop }
 
-      # Il2CppInterop scan TEMPORARILY DISABLED (focus = BepInEx). Re-enable by uncommenting:
-      # - name: Checkout Il2CppInterop component (our v1.5.2 + scan-fix dev branch)
-      #   uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      #   with: { repository: HetCreep/BepInEx.Priconne, ref: Il2CppInterop, path: Il2CppInterop }
-
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+        uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
         with:
           languages: csharp
           build-mode: none
 
       - name: Analyze
-        uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+        uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
         with:
           category: "/language:csharp"
