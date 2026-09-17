@@ -13,3 +13,12 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+    groups:
+      # github/codeql-action ships init + analyze as separate actions from one release train.
+      # Bumping them in separate PRs (2026-09, #20+#22) mismatches the SARIF config-file version
+      # init writes vs the version analyze expects to read — a run fails with "Loaded a
+      # configuration file for version 'X', but running version 'Y'" even though each PR is
+      # individually green. Group so they always land — and merge — together.
+      codeql-action:
+        patterns:
+          - "github/codeql-action/*"
