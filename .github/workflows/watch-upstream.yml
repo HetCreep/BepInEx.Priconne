@@ -16,10 +16,13 @@ permissions:
 env:
   # Baselines (2026-06-05) — update when a move is adopted. Track master HEAD, not releases/latest
   # (which returns BepInEx's Mono 5.x and a stale Il2CppInterop tag — misleading for the IL2CPP stack).
-  BEPINEX_BASE: '3fab71a'         # BepInEx/BepInEx master @ our fork base
-  INTEROP_BASE: '61f44a5'         # BepInEx/Il2CppInterop master @ v1.5.2 (our base)
-  IMAT_CORE_BASE: '2026-05-27'    # ImaterialC src/BepInEx/core last-commit date (game-moved signal)
-  DOORSTOP_BASE: '4.5.0'          # NeighTools/UnityDoorstop latest release — the winhttp proxy we ship (fetched dep)
+  BEPINEX_BASE: '5b766a3'         # BepInEx/BepInEx master — last reviewed 2026-09-17. release.yml pulls master
+                                   # live on every run, so a move is already IN each auto-release before this
+                                   # watcher even fires; bump this baseline as a review checkpoint, not a gate.
+  INTEROP_BASE: '81a6f78'         # BepInEx/Il2CppInterop master — our component (re-vendored 2026-07-08) already
+                                   # sits AT this commit (#266 + our merged #267), so no fork-delta to reconcile.
+  IMAT_CORE_BASE: '2026-08-16'    # ImaterialC src/BepInEx/core last-commit date (game-moved signal)
+  DOORSTOP_BASE: '4.5.0'          # NeighTools/UnityDoorstop latest release — the dxgi proxy we ship (fetched dep)
   CPP2IL_BASE: '2022.1.0-pre-release.21'  # SamboyCoding/Cpp2IL newest release (incl. pre-release) — our pinned IL2CPP
                                           # metadata parser (fetched NuGet). Poll the release TAG, not master: metadata-
                                           # version support (v39 etc.) lands in releases. A new tag = a possible metadata
