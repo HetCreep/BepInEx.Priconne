@@ -15,10 +15,18 @@ on:
       interop_tag:
         description: 'OPTIONAL: tag of an interop-* release with interop.zip. Leave EMPTY for a loader-core (overlay) release.'
         required: false
+      prerelease:
+        description: 'Mark as a GitHub prerelease (never becomes the repo "latest" release until unchecked/promoted). Default false: a manual dispatch is a deliberate release the operator is about to verify.'
+        type: boolean
+        required: false
+        default: false
   workflow_call:            # callable by auto-interop.yml in the SAME run (GITHUB_TOKEN can't fire workflow_dispatch -> no PAT needed)
     inputs:
       tag: { required: true, type: string }
       interop_tag: { required: false, type: string }
+      # auto-interop.yml passes true: an unattended release must never silently become "latest"
+      # ahead of a human boot-test (see MEMORY.md — `.3` shipped build-green but boot-test-unverified).
+      prerelease: { required: false, type: boolean, default: false }
 
 permissions:
   contents: write              # create the release
@@ -123,6 +131,7 @@ jobs:
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ inputs.tag }}
+          prerelease: ${{ inputs.prerelease }}
           files: |
             ${{ env.ASSET }}
             ${{ env.ASSET }}.sha256

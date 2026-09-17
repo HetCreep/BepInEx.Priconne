@@ -69,6 +69,25 @@ jobs:
     needs: check-and-bundle
     if: needs.check-and-bundle.outputs.new == 'true'
     uses: ./.github/workflows/release.yml
+    permissions:
+      contents: write
     with:
       tag: ${{ needs.check-and-bundle.outputs.rtag }}
       interop_tag: ${{ needs.check-and-bundle.outputs.itag }}
+      # unattended -> never silently becomes the repo "latest" release ahead of a human boot-test
+      prerelease: true
+
+  # If the interop-* release got cut but the loader build/package then failed, don't leave a
+  # dangling interop asset with no matching loader release -- undo the one thing this run did.
+  cleanup-orphan-interop:
+    needs: [check-and-bundle, release]
+    if: needs.check-and-bundle.outputs.new == 'true' && needs.release.result != 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Delete the interop release this run created (loader release failed)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ITAG: ${{ needs.check-and-bundle.outputs.itag }}
+        run: gh release delete "$ITAG" --repo "${GITHUB_REPOSITORY}" --yes --cleanup-tag
