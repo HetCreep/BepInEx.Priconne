@@ -1,0 +1,25 @@
+# Agent-local files (private; governance lives at the Modloader hub, not here)
+.claude/
+AGENTS.md
+MEMORY.md
+
+# Il2CppInterop is the one remaining component branch — checked out here as a git worktree of this
+# repo's own branch. The default branch (main) is the HUB (docs + the download/assembly point);
+# main must NOT track it. (BepInEx + UnityDoorstop pull from upstream in CI; Cpp2IL is a NuGet pin
+# in the Il2CppInterop csproj; the offline dumper is patches/embedded-metadata-dumper.patch.)
+Il2CppInterop/
+
+# Build output
+[Bb]in/
+[Oo]bj/
+*.user
+
+# Local NuGet restore
+packages/
+
+# Game-derived / large local artifacts (never commit; offline-generated, shipped via Releases)
+dist/
+interop/
+runtime-dump/
+*.dat
+global-metadata*.dat
