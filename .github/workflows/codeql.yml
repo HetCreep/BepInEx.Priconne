@@ -1,0 +1,49 @@
+# Code scanning (CodeQL) — security. Scans the C# loader source for vulnerabilities.
+# build-mode: none = buildless analysis (no compile) → it scans whatever C# is checked into the
+# workspace, so the hub (main) must pull the BepInEx component in first (it holds the actual source;
+# main itself is docs-only). This is what caught the Zip Slip (CWE-22) in DownloadTasks.cs.
+#
+# SCOPE: the hub + our Il2CppInterop component branch (BepInEx itself is pulled from upstream in
+# release.yml, not vendored here, so it is scanned upstream — not this workflow's job).
+#
+# Trigger model mirrors ci.yml: component branches carry no workflow, so the weekly schedule + PRs +
+# a hub change to this file + manual dispatch are the drivers. Re-vendored a component? Dispatch by hand.
+# Actions are SHA-pinned (D2); Dependabot keeps them current.
+name: codeql
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/codeql.yml']
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 4 * * 1'   # weekly, Monday 04:23 UTC
+
+permissions:
+  security-events: write
+  contents: read
+  actions: read
+
+jobs:
+  analyze:
+    name: Analyze C#
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout hub
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Checkout Il2CppInterop component (OUR owned source — BepInEx is pulled from upstream now, scanned upstream)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { repository: HetCreep/BepInEx.Priconne, ref: Il2CppInterop, path: Il2CppInterop }
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
+        with:
+          languages: csharp
+          build-mode: none
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
+        with:
+          category: "/language:csharp"

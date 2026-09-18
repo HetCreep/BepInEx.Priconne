@@ -1,0 +1,77 @@
+# D1 — build the BepInEx framework component and publish its IL2CPP win-x64 distribution as a downloadable
+# ZIP, like builds.bepinex.dev/bepinex_be. This builds ONLY BepInEx via its own Cake build — it does NOT
+# assemble the Modloader (combining BepInEx + Il2CppInterop + the dumper + interop into the final loader);
+# that is a separate, deliberate step done elsewhere. Tagged GitHub Releases are release.yml.
+#
+# Trigger model: the component branches carry NO workflow of their own (pure vendored source), so a push to
+# `BepInEx` can NOT auto-fire this — GitHub runs a workflow only from the ref that holds it. CI runs on: a hub
+# change to the build definition (ci.yml / global.json), any PR, or a manual dispatch. After RE-VENDORING the
+# BepInEx component, trigger by hand ("Run workflow") — see UPGRADING.md. Actions are SHA-pinned (D2).
+name: build
+
+# Version follows upstream BepInEx: build.cmd computes 6.0.0-be.<BUILD_ID>+<sha> (same scheme as bepinex_be).
+# BUILD_ID = the upstream bepinex_be build number for our base commit 3fab71a. The "Priconne" marker on the
+# artifact name is the only difference — it flags this as our improved edition.
+env:
+  BUILD_ID: '755'
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/ci.yml', 'global.json']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout BepInEx.Priconne (hub — for this workflow file only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: BepInEx.Priconne
+
+      - name: Checkout BepInEx (the framework component — the only thing this workflow builds)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: BepInEx/BepInEx
+          ref: master
+          path: BepInEx
+          fetch-depth: 0   # upstream tags for Cake's bleeding-edge git-describe versioning
+
+      - name: Setup .NET (6 = loader target TFM, 8 = build SDK — BepInEx master uses C# 12)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            6.0.x
+            8.0.x
+
+      - name: Build BepInEx (Cake MakeDist — bleeding-edge versioning + native deps incl dobby.dll)
+        # MakeDist = Compile + DownloadDependencies, assembling each distribution into bin/dist/<target>/.
+        # --build-type=BleedingEdge --build-id stamps the version 6.0.0-be.<id>+<sha>, exactly like bepinex_be.
+        # This step is the build-green gate (if BepInEx does not compile, MakeDist fails red).
+        # NOTE: MakeDist builds all of BepInEx's distributions; we publish only the IL2CPP win-x64 one (below).
+        working-directory: BepInEx
+        shell: cmd
+        run: build.cmd --target=MakeDist --build-type=BleedingEdge --build-id=%BUILD_ID%
+
+      - name: Verify the IL2CPP win-x64 build + compute the artifact name
+        shell: pwsh
+        run: |
+          $dist = "BepInEx/bin/dist/Unity.IL2CPP-win-x64"
+          if (-not (Test-Path $dist)) {
+            Write-Error "MakeDist produced no Unity.IL2CPP-win-x64 distribution at $dist."; exit 1
+          }
+          # Integrity gate: a BepInEx IL2CPP build must carry the native hook lib, or it cannot boot.
+          if (-not (Test-Path "$dist/BepInEx/core/dobby.dll")) {
+            Write-Error "Build at $dist is missing BepInEx/core/dobby.dll — refusing to publish a non-booting build."; exit 1
+          }
+          $sha = (git -C BepInEx rev-parse --short HEAD)
+          "ARTIFACT_NAME=BepInEx-Priconne-IL2CPP-win-x64-6.0.0-be.$env:BUILD_ID+$sha" | Out-File $env:GITHUB_ENV -Append
+
+      - name: Upload the BepInEx build (ZIP)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: BepInEx/bin/dist/Unity.IL2CPP-win-x64
+          if-no-files-found: error
