@@ -39,14 +39,20 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: BepInEx.Priconne
+          persist-credentials: false   # this job holds contents:write; don't leave that credential in any
+                                        # checkout's git config once build.cmd/dotnet build run against it
 
+      # NOT pinned to a reviewed commit (deliberate — [[track-upstream-pull-new]]): this checkout is what
+      # makes upstream fixes land in every release automatically, with no fork-delta to maintain. Pinning
+      # would trade that self-maintaining property for a marginal supply-chain gain on a job that already
+      # never persists credentials into the checkout below.
       - name: Checkout BepInEx (UPSTREAM master — our bugfixes are merged upstream; pull theirs, no fork-delta)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { repository: BepInEx/BepInEx, ref: master, path: BepInEx, fetch-depth: 0 }   # fetch-depth:0 -> upstream tags for Cake git-describe versioning
+        with: { repository: BepInEx/BepInEx, ref: master, path: BepInEx, fetch-depth: 0, persist-credentials: false }   # fetch-depth:0 -> upstream tags for Cake git-describe versioning
 
       - name: Checkout Il2CppInterop (Priconne dev branch — decoupled from the give-and-take fork)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { repository: HetCreep/BepInEx.Priconne, ref: Il2CppInterop, path: Il2CppInterop }
+        with: { repository: HetCreep/BepInEx.Priconne, ref: Il2CppInterop, path: Il2CppInterop, persist-credentials: false }
 
       - name: Setup .NET (6 = loader target, 8 = Cake build host)
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -79,10 +85,15 @@ jobs:
             Write-Error "MakeDist output has no dobby.dll at $core — aborting (would ship a non-booting loader)."; exit 1
           }
           Copy-Item "$core/*" $stage -Recurse -Force
-          # Overlay the Il2CppInterop v1.5.2+fix trio (bind-by-name, drop-in)
+          # Overlay the Il2CppInterop v1.5.2+fix trio (bind-by-name, drop-in) — required, not optional:
+          # a silently-missing overlay DLL would publish a release with no interop runtime at all.
           $rt = "Il2CppInterop/bin/Il2CppInterop.HarmonySupport/net6.0"
           foreach ($d in 'Il2CppInterop.Runtime.dll','Il2CppInterop.Common.dll','Il2CppInterop.HarmonySupport.dll') {
-            if (Test-Path "$rt/$d") { Copy-Item "$rt/$d" $stage -Force }
+            if (-not (Test-Path "$rt/$d")) {
+              Write-Error "Il2CppInterop build output is missing $d at $rt — refusing to publish a release without it."
+              exit 1
+            }
+            Copy-Item "$rt/$d" $stage -Force
           }
           # Trim native runtimes to win-x64 — the only platform the DMM game ever reaches (drop
           # osx/linux/arm/x86 = never-reached overkill). The gen tooling (Cpp2IL / dumper) STAYS:
@@ -138,6 +149,6 @@ jobs:
           body: |
             Independent BepInEx 6 (IL2CPP) loader for Princess Connect! Re:Dive — upstream BepInEx master (our fixes merged upstream, pulled directly) + Il2CppInterop v1.5.3 + the #267 Unity-6 scan fix. Native runtimes trimmed to win-x64.
 
-            **If no interop is attached, this is a loader-CORE (overlay) release:** extract `BepInEx/core/` over your existing BepInEx 6 IL2CPP install (keeps your .NET host, doorstop, interop, plugins). Game-derived interop + the translation plugins are shipped separately.
+            **This is always a loader-core overlay release** — it never includes the doorstop (`dxgi.dll`) or the `.NET` host. Extract `BepInEx/core/` (and `BepInEx/interop/`, if this release includes it) over your existing BepInEx 6 IL2CPP install. Translation plugins ship separately.
 
             Verified game build: see COMPATIBILITY.md. Verify the download with the published SHA-256.

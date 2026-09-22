@@ -12,9 +12,13 @@ boot-test**. Repeatable and scriptable.
    ```
    git -C ../BepInEx fetch origin && git -C ../BepInEx checkout master && git -C ../BepInEx merge --ff-only origin/master
    ```
-3. **Re-vendor into the `BepInEx` branch** — overwrite the framework source under `BepInEx/`:
+3. **Re-vendor into the `BepInEx` branch** — extract into a clean staging directory, then replace
+   `BepInEx/` wholesale. `tar -x` only overlays; it never removes a file the new tree deleted or
+   renamed, so extracting straight into the existing `BepInEx/` can leave stale upstream source behind:
    ```
-   git -C ../BepInEx archive master | tar -x -C BepInEx
+   rm -rf BepInEx.new && mkdir BepInEx.new
+   git -C ../BepInEx archive master | tar -x -C BepInEx.new
+   rm -rf BepInEx && mv BepInEx.new BepInEx
    ```
 4. **Re-apply our robustness patches to the shipped source** — the missing-directory guard, the type-loader
    cache hardening, the hashstrings UTF-8 length fix, the interop-generator scan-correctness fix, and the

@@ -27,10 +27,17 @@ See [COMPATIBILITY.md](COMPATIBILITY.md). Current: **Unity 6000.0.58f2 · IL2CPP
 
 ## Install
 
+Every release here is a **loader-core overlay** — it ships `BepInEx/core/` (and, if the release
+names an interop tag, `BepInEx/interop/` too) but never the UnityDoorstop proxy (`dxgi.dll`) or the
+bundled `.NET` host. You need an **existing** BepInEx 6 IL2CPP doorstop install to overlay onto (for
+example, the public ImaterialC loader) — extracting this release alone onto a bare game folder will
+not launch anything. Auto-shipping a complete from-scratch package is tracked in [BUILD.md](BUILD.md).
+
 1. Close the game.
 2. Download the latest `BepInEx.Priconne_<date>.zip` from [Releases](../../releases).
-3. Extract its contents into your game folder (the directory that contains
-   `PrincessConnectReDive.exe`), keeping the structure — `dxgi.dll` lands next to the exe.
+3. Extract `BepInEx/core/` (and `BepInEx/interop/` if present) **over** your existing BepInEx 6 IL2CPP
+   install — the directory that already has `dxgi.dll` next to `PrincessConnectReDive.exe`. Keep your
+   existing `dxgi.dll`, `doorstop_config.ini`, and `dotnet/` host; only the `BepInEx/` contents change.
 4. Launch the game through DMM Game Player as usual. First launch writes `BepInEx/LogOutput.log`.
 
 Verify it loaded: `BepInEx/LogOutput.log` shows `Chainloader initialized` and your plugins listed.
@@ -71,8 +78,10 @@ keep the LGPL notice and upstream attribution intact.
   is decrypted or redistributed.
 - **No automation.** This loader ships and curates display / translation / convenience mods only —
   never auto-battle, farming, clickers, or any gameplay automation.
-- **Telemetry-free.** The only outbound fetch is the Unity base libraries from the BepInEx CDN (build
-  time); no analytics, no heartbeat, no new outbound host.
+- **Telemetry-free at runtime.** The installed loader makes **no** outbound requests on its own — no
+  analytics, no heartbeat, no phone-home. (Build time is separate: CI fetches NuGet packages, Cake's
+  native deps, and the Unity base libraries from the BepInEx CDN — see [BUILD.md](BUILD.md). None of
+  that reaches the player's machine or runs after install.)
 - "Princess Connect! Re:Dive" / "プリコネ" are trademarks of **Cygames, Inc.**; "DMM" of **DMM.com LLC** —
   nominative use only, no branding or logos.
 

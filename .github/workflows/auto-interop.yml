@@ -27,12 +27,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          imat=$(gh api repos/ImaterialC/PriconneRe-TL/releases --jq 'max_by(.created_at).tag_name')
-          ours=$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
-                   --jq '[.[].tag_name | select(startswith("interop-"))] | sort | last // ""')
-          echo "ImaterialC latest = '$imat' | our latest interop = '${ours:-none}'"
-          if [ -z "$imat" ] || [ "interop-$imat" = "$ours" ]; then
-            echo "Up to date (or no ImaterialC release found) — nothing to do."
+          imat=$(gh api repos/ImaterialC/PriconneRe-TL/releases --jq 'max_by(.created_at).tag_name // empty')
+          echo "ImaterialC latest = '${imat:-none}'"
+          if [ -z "$imat" ]; then
+            echo "No ImaterialC release found — nothing to do."
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          elif gh release view "interop-$imat" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Up to date — nothing to do."
             echo "new=false" >> "$GITHUB_OUTPUT"
           else
             echo "New ImaterialC interop: $imat"
@@ -43,9 +44,10 @@ jobs:
         if: steps.check.outputs.new == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          ITAG: ${{ steps.check.outputs.itag }}   # via env, not inline — no shell injection from an upstream tag name
         run: |
           set -euo pipefail
-          imat="${{ steps.check.outputs.itag }}"; imat="${imat#interop-}"
+          imat="${ITAG#interop-}"
           # Sparse, shallow checkout of ONLY ImaterialC's interop dir at their release tag.
           git clone --depth 1 --branch "$imat" --filter=blob:none --sparse \
             https://github.com/ImaterialC/PriconneRe-TL.git imat
@@ -59,7 +61,7 @@ jobs:
             "NOT Cygames content. Prefer ImaterialC's repository for the authoritative copy." \
             > stage/NOTICE-interop.txt
           ( cd stage && zip -qr ../interop.zip . )
-          gh release create "${{ steps.check.outputs.itag }}" interop.zip \
+          gh release create "$ITAG" interop.zip \
             --repo "${GITHUB_REPOSITORY}" --prerelease \
             --title "interop $imat (ImaterialC, re-hosted)" \
             --notes "Auto-fetched ImaterialC interop $imat. Game-derived type metadata, not Cygames content. See NOTICE-interop.txt."
@@ -81,7 +83,7 @@ jobs:
   # dangling interop asset with no matching loader release -- undo the one thing this run did.
   cleanup-orphan-interop:
     needs: [check-and-bundle, release]
-    if: needs.check-and-bundle.outputs.new == 'true' && needs.release.result != 'success'
+    if: ${{ always() && needs.check-and-bundle.outputs.new == 'true' && needs.release.result != 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

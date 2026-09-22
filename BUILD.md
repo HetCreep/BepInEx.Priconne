@@ -60,7 +60,7 @@ The interop is stored **separately from the code** as a versioned release asset
 never enter the source tree. The release workflow (`workflow_dispatch` → `interop_tag`) downloads the
 asset for the build named in [COMPATIBILITY.md](COMPATIBILITY.md) and assembles it into the zip.
 
-## Package layout (the release zip)
+## Package layout (target game folder)
 
 ```
 <game folder>/
@@ -74,6 +74,11 @@ asset for the build named in [COMPATIBILITY.md](COMPATIBILITY.md) and assembles 
     ├── plugins/                  # (translation plugins ship separately)
     └── patchers/
 ```
+
+> **The release zip is `BepInEx/` only** (`core/` always, `interop/` when `interop_tag` is set). The
+> three items above the `BepInEx/` line — `dxgi.dll`, `doorstop_config.ini`, `dotnet/` — are NOT in the
+> zip; they're a prerequisite the target game folder must already have (see the dxgi note below and
+> [README.md](README.md#install)). Auto-shipping them is a TODO, not yet done.
 
 > **⚠️ Proxy host: Priconne requires the `dxgi` doorstop proxy — NOT `winhttp`.** Priconne uses winhttp
 > very early (DMM/DRM), and the `winhttp.dll` doorstop proxy makes the game **silently fail to launch**
