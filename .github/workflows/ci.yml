@@ -10,10 +10,13 @@
 name: build
 
 # Version follows upstream BepInEx: build.cmd computes 6.0.0-be.<BUILD_ID>+<sha> (same scheme as bepinex_be).
-# BUILD_ID = the upstream bepinex_be build number for our base commit 3fab71a. The "Priconne" marker on the
-# artifact name is the only difference — it flags this as our improved edition.
-env:
-  BUILD_ID: '755'
+# BUILD_ID must move with whatever commit gets checked out below (this workflow tracks live master, not
+# a pinned commit) — computed after checkout from the source itself, never hardcoded (a fixed number here
+# would label every future master commit as the same stale build). The "Priconne" marker on the artifact
+# name is the only difference from upstream — it flags this as our improved edition.
+
+permissions:
+  contents: read   # this workflow only reads + uploads a build artifact; no write is ever needed
 
 on:
   push:
@@ -30,6 +33,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: BepInEx.Priconne
+          persist-credentials: false   # nothing after this step needs to push here
 
       - name: Checkout BepInEx (the framework component — the only thing this workflow builds)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -38,6 +42,15 @@ jobs:
           ref: master
           path: BepInEx
           fetch-depth: 0   # upstream tags for Cake's bleeding-edge git-describe versioning
+          persist-credentials: false   # build.cmd/dotnet build run against this external checkout next;
+                                        # don't leave a write-capable credential in its git config
+
+      - name: Compute BUILD_ID from the checked-out BepInEx commit
+        id: buildid
+        shell: pwsh
+        run: |
+          $id = (git -C BepInEx rev-list --count HEAD)
+          "BUILD_ID=$id" | Out-File $env:GITHUB_ENV -Append
 
       - name: Setup .NET (6 = loader target TFM, 8 = build SDK — BepInEx master uses C# 12)
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0

@@ -9,17 +9,17 @@ How the deployable loader is assembled. CI runs this on release (see `.github/wo
 
 ## Sources
 
-The BepInEx framework source is vendored **in this repo** under `BepInEx/` (on the `BepInEx` branch); the
-interop is a sibling `Il2CppInterop` branch. The parser (Cpp2IL) is a fetched NuGet dep — the `Cpp2IL`
-branch is a component marker, not built source; the offline extract tool is the `PrincessDumper` sibling
-branch (run offline, never shipped). The upstream `HetCreep/*` forks are for give-and-take only — the
-loader builds from our own branches so an upstream PR can never move what we ship.
+CI assembles the loader from three places. Nothing from BepInEx is vendored in this repo — the framework
+is checked out from upstream master on every run, so upstream fixes reach each release with no fork to
+maintain. The one component kept here is the `Il2CppInterop` branch. The offline metadata-extract tool is
+not a branch or a build source: it lives as `patches/embedded-metadata-dumper.patch` (dormant — applied only
+for an offline interop-generation build, never shipped).
 
 | Source | What it provides |
 |---|---|
-| `BepInEx/` (this repo, `BepInEx` branch) | core framework: preloader, chainloader, Unity IL2CPP runtime, doorstop glue (upstream BepInEx 6 master + our robustness patches) |
-| `Il2CppInterop` branch (v1.5.2 + scan-safety fix) | the interop runtime trio (Runtime / Common / HarmonySupport) |
-| Cpp2IL (`Samboy063.Cpp2IL.Core 2022.1.0-pre-release.21`, NuGet — bundled in BepInEx) | the IL2CPP **metadata parser** (supports v23–106 incl **v39**) — the version gates which metadata versions parse; runs **offline** for interop generation only, never on the player |
+| `BepInEx/BepInEx` **master** (checked out live by `release.yml` / `ci.yml`, never pinned) | core framework: preloader, chainloader, Unity IL2CPP runtime, doorstop glue — our robustness fixes were merged upstream, so there is no fork-delta to carry |
+| `Il2CppInterop` branch of this repo (upstream master + two small deltas: a bounds-checked signature scan and specific exception types) | the interop runtime trio (Runtime / Common / HarmonySupport) |
+| Cpp2IL (`Samboy063.Cpp2IL.Core`, NuGet — the version is pinned by upstream BepInEx's own csproj, not by us) | the IL2CPP **metadata parser** (supports metadata v39) — the version gates which metadata versions parse; runs **offline** for interop generation only, never on the player |
 
 > The interop-gen parser is **Cpp2IL/LibCpp2IL** (a NuGet dep bundled in BepInEx), not a separate
 > branch. **c01ns/Il2CppDumper** (Perfare lineage) was the reference parser that first established
@@ -28,21 +28,23 @@ loader builds from our own branches so an upstream PR can never move what we shi
 ## Build
 
 ```bash
-# Quick compile-check (CI's build-green gate):
+# Quick local compile-check (BepInEx checked out from upstream master into ./BepInEx, as CI does):
 dotnet build BepInEx/BepInEx.sln -c Release -p:GeneratePackageOnBuild=false   # NU5046 logo.png guard
 dotnet build Il2CppInterop/Il2CppInterop.HarmonySupport/Il2CppInterop.HarmonySupport.csproj -c Release  # pulls the trio
 
 # Full deployable core (what release.yml does) — Cake fetches the native deps incl dobby.dll:
-cd BepInEx && build.cmd --target MakeDist   # -> BepInEx/dist-il2cpp/BepInEx/core  (WITH dobby.dll)
+cd BepInEx && build.cmd --target=MakeDist --build-type=BleedingEdge
+# -> BepInEx/bin/dist/Unity.IL2CPP-win-x64/BepInEx/core  (WITH dobby.dll)
 ```
 
 ## Assemble `BepInEx/core/`
 
-Copy the **Cake MakeDist output** (`BepInEx/dist-il2cpp/BepInEx/core/*` — already contains `dobby.dll` and
-the native runtimes) into `core/`, then overlay the Il2CppInterop **v1.5.2+fix** trio
+Copy the **Cake MakeDist output** (`BepInEx/bin/dist/Unity.IL2CPP-win-x64/BepInEx/core/*` — already contains
+`dobby.dll` and the native runtimes) into `core/`, then overlay the Il2CppInterop trio
 (`Il2CppInterop.Runtime.dll` / `Il2CppInterop.Common.dll` / `Il2CppInterop.HarmonySupport.dll`) from the
-HarmonySupport build output, and trim `core/runtimes/` to `win-x64`. The doorstop `dxgi.dll` +
-`doorstop_config.ini` + the `dotnet/` CoreCLR host are added at the package root.
+HarmonySupport build output (`release.yml` fails the run if any of the three is missing), and trim
+`core/runtimes/` to `win-x64`. The doorstop `dxgi.dll` + `doorstop_config.ini` + the `dotnet/` host are **not**
+added by CI — see the package-layout note below.
 
 > Do NOT assemble from `bin/Unity.IL2CPP/` — that output lacks `dobby.dll` (a plain `dotnet build` never
 > downloads it). Always assemble from the Cake **MakeDist** output. (This was the broken-release bug.)
@@ -60,7 +62,7 @@ The interop is stored **separately from the code** as a versioned release asset
 never enter the source tree. The release workflow (`workflow_dispatch` → `interop_tag`) downloads the
 asset for the build named in [COMPATIBILITY.md](COMPATIBILITY.md) and assembles it into the zip.
 
-## Package layout (the release zip)
+## Package layout (target game folder)
 
 ```
 <game folder>/
@@ -74,6 +76,11 @@ asset for the build named in [COMPATIBILITY.md](COMPATIBILITY.md) and assembles 
     ├── plugins/                  # (translation plugins ship separately)
     └── patchers/
 ```
+
+> **The release zip is `BepInEx/` only** (`core/` always, `interop/` when `interop_tag` is set). The
+> three items above the `BepInEx/` line — `dxgi.dll`, `doorstop_config.ini`, `dotnet/` — are NOT in the
+> zip; they're a prerequisite the target game folder must already have (see the dxgi note below and
+> [README.md](README.md#install)). Auto-shipping them is a TODO, not yet done.
 
 > **⚠️ Proxy host: Priconne requires the `dxgi` doorstop proxy — NOT `winhttp`.** Priconne uses winhttp
 > very early (DMM/DRM), and the `winhttp.dll` doorstop proxy makes the game **silently fail to launch**
