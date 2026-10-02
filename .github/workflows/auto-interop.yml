@@ -13,6 +13,13 @@ on:
 permissions:
   contents: write            # create the interop-* release; the called release.yml creates the loader release
 
+# Serialize runs (cron + a manual dispatch can overlap). Never cancel: a run killed between creating the
+# interop-* release and the loader release would orphan it. Without this, a run that lost the race on
+# `gh release create` would reach cleanup-orphan-interop and delete the OTHER run's valid interop release.
+concurrency:
+  group: auto-interop
+  cancel-in-progress: false
+
 jobs:
   check-and-bundle:
     runs-on: ubuntu-latest
@@ -92,4 +99,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           ITAG: ${{ needs.check-and-bundle.outputs.itag }}
-        run: gh release delete "$ITAG" --repo "${GITHUB_REPOSITORY}" --yes --cleanup-tag
+        run: |
+          # The release may never have been created (the failure can be earlier, e.g. the clone) — only delete one that exists.
+          if gh release view "$ITAG" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release delete "$ITAG" --repo "${GITHUB_REPOSITORY}" --yes --cleanup-tag
+          else
+            echo "No $ITAG release exists — nothing to clean up."
+          fi

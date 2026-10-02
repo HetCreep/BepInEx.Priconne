@@ -35,17 +35,23 @@ not launch anything. Auto-shipping a complete from-scratch package is tracked in
 
 1. Close the game.
 2. Download the latest `BepInEx.Priconne_<date>.zip` from [Releases](../../releases).
-3. Extract `BepInEx/core/` (and `BepInEx/interop/` if present) **over** your existing BepInEx 6 IL2CPP
-   install — the directory that already has `dxgi.dll` next to `PrincessConnectReDive.exe`. Keep your
-   existing `dxgi.dll`, `doorstop_config.ini`, and `dotnet/` host; only the `BepInEx/` contents change.
+3. **Back up** your existing `BepInEx/core/` and `BepInEx/interop/` folders first (you restore them to
+   uninstall). Then extract `BepInEx/core/` (and `BepInEx/interop/` if present) **over** your existing
+   BepInEx 6 IL2CPP install — the directory that already has `dxgi.dll` next to
+   `PrincessConnectReDive.exe`. Keep your existing `dxgi.dll`, `doorstop_config.ini`, and `dotnet/` host;
+   only the `BepInEx/core/` and `BepInEx/interop/` contents change.
 4. Launch the game through DMM Game Player as usual. First launch writes `BepInEx/LogOutput.log`.
 
 Verify it loaded: `BepInEx/LogOutput.log` shows `Chainloader initialized` and your plugins listed.
 
 ## Uninstall
 
-Delete `dxgi.dll` and the `BepInEx/` folder from the game directory. The game runs vanilla again;
-no game files were modified.
+**Remove only this overlay:** put back the `BepInEx/core/` and `BepInEx/interop/` folders you backed up
+before installing. Your `dxgi.dll`, `doorstop_config.ini`, `dotnet/` host and plugins stay as they were.
+
+**Remove the whole loader** (back to vanilla): delete `dxgi.dll`, `doorstop_config.ini`, `dotnet/` and the
+`BepInEx/` folder from the game directory — this also removes the install you overlaid onto and its
+plugins. No game files were modified either way.
 
 ## Troubleshooting
 
