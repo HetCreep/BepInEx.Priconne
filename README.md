@@ -57,9 +57,10 @@ no game files were modified.
 
 ## Build from source
 
-See [BUILD.md](BUILD.md). In short: build the [BepInEx](https://github.com/HetCreep/BepInEx) and
-[Il2CppInterop](https://github.com/HetCreep/Il2CppInterop) forks, assemble `BepInEx/core/`, add the
-offline-generated `interop/`, and package with the doorstop + `.NET` host. CI does this on release.
+See [BUILD.md](BUILD.md). In short: build upstream [BepInEx](https://github.com/BepInEx/BepInEx) (master) and
+this repo's `Il2CppInterop` branch, assemble `BepInEx/core/`, and add the offline-generated `interop/`.
+CI does all of this on release; the doorstop proxy and `.NET` host are a prerequisite you already have
+(see Install).
 
 ## Lineage & License
 

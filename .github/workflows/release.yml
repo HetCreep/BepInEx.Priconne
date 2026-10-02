@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { repository: BepInEx/BepInEx, ref: master, path: BepInEx, fetch-depth: 0, persist-credentials: false }   # fetch-depth:0 -> upstream tags for Cake git-describe versioning
 
-      - name: Checkout Il2CppInterop (Priconne dev branch — decoupled from the give-and-take fork)
+      - name: Checkout Il2CppInterop (this repo's Il2CppInterop branch — upstream master + our two small deltas)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { repository: HetCreep/BepInEx.Priconne, ref: Il2CppInterop, path: Il2CppInterop, persist-credentials: false }
 
@@ -67,7 +67,7 @@ jobs:
         run: dotnet build Il2CppInterop/Il2CppInterop.HarmonySupport/Il2CppInterop.HarmonySupport.csproj -c Release --nologo
 
       - name: Build BepInEx IL2CPP core (Cake MakeDist — fetches native deps incl dobby.dll)
-        # `--target MakeDist` = Compile + DownloadDependencies + assemble into dist-il2cpp/BepInEx/core
+        # `--target MakeDist` = Compile + DownloadDependencies + assemble into bin/dist/<target>/BepInEx/core
         # WITH dobby.dll. Plain `dotnet build` / `--target Compile` does NOT download dobby — that was the
         # broken-release bug (CI green, artifact missing dobby). MakeDist is reproducible from source.
         working-directory: BepInEx

@@ -43,8 +43,8 @@ jobs:
           door=$(gh api repos/NeighTools/UnityDoorstop/releases/latest --jq '.tag_name' | sed 's/^v//')
           cpp=$(gh api 'repos/SamboyCoding/Cpp2IL/releases?per_page=1' --jq '.[0].tag_name')
           : > moved.md
-          [ "$bep"  != "$BEPINEX_BASE" ]   && echo "- **BepInEx** master moved: \`$BEPINEX_BASE\` → \`$bep\` — review for fixes to pull into our fork." >> moved.md || true
-          [ "$intr" != "$INTEROP_BASE" ]   && echo "- **Il2CppInterop** master moved: \`$INTEROP_BASE\` → \`$intr\` — review for fixes to pull into our fork." >> moved.md || true
+          [ "$bep"  != "$BEPINEX_BASE" ]   && echo "- **BepInEx** master moved: \`$BEPINEX_BASE\` → \`$bep\` — already in the next release (CI pulls master live); review for anything that changes boot behaviour." >> moved.md || true
+          [ "$intr" != "$INTEROP_BASE" ]   && echo "- **Il2CppInterop** master moved: \`$INTEROP_BASE\` → \`$intr\` — review; re-vendor our Il2CppInterop branch if it carries fixes we need (see UPGRADING.md A2)." >> moved.md || true
           [ "$imat" != "$IMAT_CORE_BASE" ] && echo "- **ImaterialC** loader (\`src/BepInEx/core\`) changed: $IMAT_CORE_BASE → $imat — the game likely moved; re-verify our \`core\` boots + regen interop if stale." >> moved.md || true
           [ "$door" != "$DOORSTOP_BASE" ] && echo "- **UnityDoorstop** released \`$DOORSTOP_BASE\` → \`$door\` — the doorstop proxy we fetch + ship; review + bump DoorstopVersion in the Cake build." >> moved.md || true
           [ "$cpp"  != "$CPP2IL_BASE" ]   && echo "- **Cpp2IL** released \`$CPP2IL_BASE\` → \`$cpp\` — our pinned IL2CPP metadata parser; a new tag may add a metadata version. Review + bump \`Samboy063.Cpp2IL.Core\` in \`BepInEx.Unity.IL2CPP.csproj\` if the game's metadata version moved." >> moved.md || true

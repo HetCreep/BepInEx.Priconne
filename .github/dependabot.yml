@@ -1,7 +1,8 @@
 # Keep the CI/release workflow actions current (and SHA-pinned — see distribution-integrity D2).
-# Only github-actions applies here: the .NET build dependencies live in the BepInEx /
-# Il2CppInterop forks (fetched by CI), not in this distribution repo, so there is no NuGet
-# manifest here for Dependabot to track. Add a `nuget` ecosystem if/when project files are vendored in.
+# Only github-actions applies here: the .NET build dependencies live in upstream BepInEx (checked out
+# by CI) and in the Il2CppInterop branch (a separate branch, not this one), so there is no NuGet
+# manifest on this branch for Dependabot to track. Add a `nuget` ecosystem if/when project files are
+# vendored in.
 version: 2
 updates:
   - package-ecosystem: "github-actions"
