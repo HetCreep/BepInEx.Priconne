@@ -47,10 +47,11 @@ jobs:
             { echo "new=true"; echo "itag=interop-$imat"; echo "rtag=6.0.0-priconne-$imat"; } >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Fetch + bundle the interop, cut the interop-* release
+      # Bundling reads a THIRD-PARTY tree, so this step holds no credentials: no GH_TOKEN in its environment.
+      # Publishing is the next step, which never touches the third-party files.
+      - name: Fetch + bundle the interop
         if: steps.check.outputs.new == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
           ITAG: ${{ steps.check.outputs.itag }}   # via env, not inline — no shell injection from an upstream tag name
         run: |
           set -euo pipefail
@@ -60,6 +61,12 @@ jobs:
             https://github.com/ImaterialC/PriconneRe-TL.git imat
           git -C imat sparse-checkout set src/BepInEx/interop
           test -d imat/src/BepInEx/interop || { echo "::error::ImaterialC interop dir missing at tag $imat"; exit 1; }
+          # Archive only regular files and directories. zip follows symlinks and would store the contents of
+          # whatever they point at (a file on this runner) into a public release asset.
+          if [ -n "$(find imat/src/BepInEx/interop ! -type f ! -type d -print -quit)" ]; then
+            echo "::error::ImaterialC interop tree at tag $imat holds a symlink or other non-regular file — refusing to bundle it"
+            exit 1
+          fi
           mkdir stage
           cp -r imat/src/BepInEx/interop/. stage/
           printf '%s\n' \
@@ -68,6 +75,15 @@ jobs:
             "NOT Cygames content. Prefer ImaterialC's repository for the authoritative copy." \
             > stage/NOTICE-interop.txt
           ( cd stage && zip -qr ../interop.zip . )
+
+      - name: Cut the interop-* release
+        if: steps.check.outputs.new == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ITAG: ${{ steps.check.outputs.itag }}
+        run: |
+          set -euo pipefail
+          imat="${ITAG#interop-}"
           gh release create "$ITAG" interop.zip \
             --repo "${GITHUB_REPOSITORY}" --prerelease \
             --title "interop $imat (ImaterialC, re-hosted)" \
@@ -101,8 +117,11 @@ jobs:
           ITAG: ${{ needs.check-and-bundle.outputs.itag }}
         run: |
           # The release may never have been created (the failure can be earlier, e.g. the clone) — only delete one that exists.
+          # No --cleanup-tag: the git tag can predate this run (deleting a release in the UI leaves its tag, and
+          # `gh release create` then reuses it), so this run cannot claim to own it. An orphan tag is harmless: the
+          # check step looks for the RELEASE, and the next `gh release create` reuses the tag.
           if gh release view "$ITAG" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            gh release delete "$ITAG" --repo "${GITHUB_REPOSITORY}" --yes --cleanup-tag
+            gh release delete "$ITAG" --repo "${GITHUB_REPOSITORY}" --yes
           else
             echo "No $ITAG release exists — nothing to clean up."
           fi
